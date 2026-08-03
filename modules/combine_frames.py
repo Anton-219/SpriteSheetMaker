@@ -197,13 +197,35 @@ def combine_into_sheet(param:AssembleParam, rows:list[RowData], global_img_wides
     font_size = param.font_size
 
 
+    # Create font (needed early since label bbox affects sheet sizing)
+    font = ImageFont.load_default(font_size) if font_size !=0 else None
+
+
     # Calculate sheet dimensions based on sprite consistency
     sheet_width = 0
     sheet_height = 0
+    row_labels:list[str] = []
     for row_count, row_data in enumerate(rows):
 
         # Calculate row height & width
         row_width, row_height = calc_row_size(param, row_data, global_img_widest, global_img_tallest)
+
+
+        # Build label postfix (Frame Count always comes before Row Size when both are enabled)
+        label_postfix = ""
+        if param.label_show_frame_count:
+            label_postfix += f" [{len(row_data.images)}]"
+        if param.label_show_row_size:
+            label_postfix += f" ({row_width} x {row_height})"
+        row_label = row_data.label_text + label_postfix
+        row_labels.append(row_label)
+
+
+        # Measure label bbox using row label with postfix
+        label_bbox = (0, 0, 0, 0) if font_size == 0 else font.getbbox(row_label)
+        row_data.label_width = (label_bbox[2] - label_bbox[0])
+        row_data.label_height = (label_bbox[3] - label_bbox[1])
+        row_data.label_offset = (0, -label_bbox[1])
 
 
         # Add to height & width
@@ -228,12 +250,11 @@ def combine_into_sheet(param:AssembleParam, rows:list[RowData], global_img_wides
     bg_color = color_to_pil(param.background_color, img_mode)
     sheet = Image.new(img_mode, (int(sheet_width), int(sheet_height)), bg_color)
     draw = ImageDraw.Draw(sheet)
-    font = ImageFont.load_default(param.font_size) if param.font_size !=0 else None
 
 
     # Paste labels & images into sheet
     paste_height = surrounding_margin[0]
-    for row_data in rows:
+    for row_data, row_label in zip(rows, row_labels):
 
         # Reset paste width
         paste_width = surrounding_margin[3]
@@ -244,9 +265,9 @@ def combine_into_sheet(param:AssembleParam, rows:list[RowData], global_img_wides
             label_location_x = paste_width + row_data.label_offset[0]
             label_location_y = paste_height + row_data.label_offset[1]
             label_fill = color_to_pil(param.label_color, img_mode)
-            draw.text((label_location_x, label_location_y), row_data.label_text, fill=label_fill, font=font, spacing = 0)
+            draw.text((label_location_x, label_location_y), row_label, fill=label_fill, font=font, spacing = 0)
             paste_height += row_data.label_height + label_margin
-            log(f"Addded label '{row_data.label_text}' at ({label_location_x},{label_location_y})")
+            log(f"Addded label '{row_label}' at ({label_location_x},{label_location_y})")
 
 
         # Paste images
@@ -299,7 +320,7 @@ def combine_into_strips(param:AssembleParam, rows:list[RowData], global_img_wide
 
 
     # Create font
-    font = ImageFont.load_default(param.font_size) if param.font_size !=0 else None
+    font = ImageFont.load_default(font_size) if font_size !=0 else None
 
     
     # Make sure folder exists
@@ -307,13 +328,29 @@ def combine_into_strips(param:AssembleParam, rows:list[RowData], global_img_wide
 
 
     # Iterate and create strips
-    for _, row_data in enumerate(rows):
+    for row_data in rows:
         row_width, img_height = calc_row_size(param, row_data, global_img_widest, global_img_tallest)
+
+
+        # Build label postfix (Frame Count always comes before Row Size when both are enabled)
+        label_postfix = ""
+        if param.label_show_frame_count:
+            label_postfix += f" [{len(row_data.images)}]"
+        if param.label_show_row_size:
+            label_postfix += f" ({row_width} x {img_height})"
+        row_label = row_data.label_text + label_postfix
+
+
+        # Measure label bbox using row label with postfix
+        label_bbox = (0, 0, 0, 0) if font_size == 0 else font.getbbox(row_label)
+        label_width = (label_bbox[2] - label_bbox[0])
+        label_height = (label_bbox[3] - label_bbox[1])
+        label_offset = (0, -label_bbox[1])
 
     
         # Assign strip height & width
-        strip_width = surrounding_margin_left + max(row_width, row_data.label_width) + surrounding_margin_right
-        strip_height = surrounding_margin_top + ((row_data.label_height + label_margin) if font_size != 0 else 0) + img_height + surrounding_margin_bottom
+        strip_width = surrounding_margin_left + max(row_width, label_width) + surrounding_margin_right
+        strip_height = surrounding_margin_top + ((label_height + label_margin) if font_size != 0 else 0) + img_height + surrounding_margin_bottom
 
 
         # Create strip
@@ -327,11 +364,11 @@ def combine_into_strips(param:AssembleParam, rows:list[RowData], global_img_wide
         # Paste label
         paste_height = surrounding_margin_top
         if(font_size != 0):
-            label_location_x = surrounding_margin_left + row_data.label_offset[0]
-            label_location_y = surrounding_margin_top + row_data.label_offset[1]
+            label_location_x = surrounding_margin_left + label_offset[0]
+            label_location_y = surrounding_margin_top + label_offset[1]
             label_fill = color_to_pil(param.label_color, img_mode)
-            draw.text((label_location_x, label_location_y), row_data.label_text, fill=label_fill, font=font, spacing = 0)
-            paste_height += row_data.label_height + label_margin
+            draw.text((label_location_x, label_location_y), row_label, fill=label_fill, font=font, spacing = 0)
+            paste_height += label_height + label_margin
 
 
         # Paste images
@@ -357,7 +394,7 @@ def combine_into_strips(param:AssembleParam, rows:list[RowData], global_img_wide
             paste_width += large_width + image_margin
 
 
-        # Save strip
+        # Save strip (base label used so postfix does not leak into file name)
         ext = row_data.images[0].format if len(row_data.images) != 0 else DEFAULT_FILE_FORMAT
         strip_output_path = os.path.join(output_path, f"{row_data.label_text}.{ext.lower()}")
         log(f"Saving strip to '{strip_output_path}' ...")
@@ -382,6 +419,7 @@ def combine_into_images(param:AssembleParam, rows:list[RowData], global_img_wide
         # Create row folder
         row_folder = os.path.join(output_path, f"{row_count}_{row_data.label_text}")
         create_folder(row_folder)
+        log(f"Row '{row_data.label_text}' folder created at '{row_folder}'")
 
 
         # Save images
@@ -414,16 +452,19 @@ def combine_into_images(param:AssembleParam, rows:list[RowData], global_img_wide
             alpha_paste(new_img, img, (int(offset_x + surrounding_margin_left), int(offset_y + surrounding_margin_top)))
 
 
+            # Build size postfix if enabled
+            size_postfix = f" ({new_img_width} x {new_img_height})" if param.label_show_row_size else ""
+
+
             # Save new image
             ext = img.format if img.format is not None else DEFAULT_FILE_FORMAT
-            img_output_path = os.path.join(row_folder, f"{img_count}.{ext.lower()}")
+            img_output_path = os.path.join(row_folder, f"{img_count}{size_postfix}.{ext.lower()}")
             log(f"Saving image to '{img_output_path}' ...")
             new_img.save(img_output_path)
             log(f"Successfully saved sprite image to {img_output_path}")
 def assemble_images(param:AssembleParam, input_folder_path:str, output_path:str):
 
-    # Load font and Get all sorted action sub folders
-    font = ImageFont.load_default(param.font_size) if param.font_size !=0 else None
+    # Get all sorted action sub folders
     action_folders = sorted(
         [folder for folder in os.listdir(input_folder_path) if os.path.isdir(os.path.join(input_folder_path, folder))],
         key=lambda x: int(x.split('_')[0])
@@ -435,12 +476,11 @@ def assemble_images(param:AssembleParam, input_folder_path:str, output_path:str)
     global_img_widest:int = 0
     global_img_tallest:int = 0
     rows:list[RowData] = []
-    base_labels:list[str] = []
     for action_folder in action_folders:
 
         # Create row data
         row_data = RowData()
-        base_labels.append(action_folder.split('_', 1)[1])
+        row_data.label_text = action_folder.split('_', 1)[1]
 
 
         # Images
@@ -464,26 +504,6 @@ def assemble_images(param:AssembleParam, input_folder_path:str, output_path:str)
 
         # Append row data
         rows.append(row_data)
-
-
-    # Build labels (along with frame count and row size)
-    for row_data, base_label_text in zip(rows, base_labels):
-
-        # Build label postfix (Frame Count always comes before Row Size when both are enabled)
-        label_postfix = ""
-        if param.label_show_frame_count:
-            label_postfix += f" [{len(row_data.images)}]"
-        if param.label_show_row_size:
-            row_width, row_height = calc_row_size(param, row_data, global_img_widest, global_img_tallest)
-            label_postfix += f" ({row_width} x {row_height})"
-
-
-        # Add label to row data
-        row_data.label_text = base_label_text + label_postfix
-        label_bbox = (0, 0, 0, 0) if param.font_size == 0 else font.getbbox(row_data.label_text)
-        row_data.label_width = (label_bbox[2] - label_bbox[0])
-        row_data.label_height = (label_bbox[3] - label_bbox[1]) 
-        row_data.label_offset = (0, -label_bbox[1])
 
 
     # Combine into sheet or strips 
