@@ -1,6 +1,6 @@
 # 🖼️ Sprite Sheet Maker
 
-![Blender](https://img.shields.io/badge/Blender-%23F5792A.svg?style=flat&logo=blender&logoColor=white)
+[![Blender-Addon](https://img.shields.io/badge/Blender--Addon-%23F5792A.svg?style=flat&logo=blender&logoColor=white)](https://extensions.blender.org/add-ons/sprite-sheet-maker/)
 ![License](https://img.shields.io/github/license/ManasMakde/SpriteSheetMaker?style=flat&color=blue)
 
 A blender addon to convert your 3D animations into 2D sprite sheets with in-built toggleable pixelation
