@@ -679,6 +679,10 @@ class SSM_OT_ImportSettings(Operator, ImportHelper):
         for key, val in data.get("props", {}).items():
             if hasattr(props, key):
                 setattr(props, key, val)
+
+
+        # reset since row count may have changed
+        scene.row_index = 0  
     def invoke(self, context, event):
         self.filepath = DEFAULT_SETTINGS_FILE_NAME
         context.window_manager.fileselect_add(self)
@@ -1373,8 +1377,8 @@ def get_current_row():
     rows = scene.animation_rows
     if(len(rows) == 0):
         return None
-
-    idx = scene.row_index
+    
+    idx = min(scene.row_index, len(rows) - 1)  # clamp incase index is stale
     return rows[idx]
 def get_row_label(row):
     return row.label if row.label!='' else UNTITLED_ROW_NAME

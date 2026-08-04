@@ -888,6 +888,7 @@ def pixelate_images(image_paths:dict[str, str], param:PixelateParam):  # images 
 
     # Intentionally kept inside try so that temp scene is deleted even incase of failure
     exception = None
+    all_node_groups = set()
     try:
 
         # Set pixelate scene as active
