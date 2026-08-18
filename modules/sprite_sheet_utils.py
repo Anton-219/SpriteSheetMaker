@@ -983,6 +983,34 @@ def pixelate_images(image_paths:dict[str, str], param:PixelateParam):  # images 
     # Throw exception incase of failure
     if(exception != None):
         raise exception
+def mute_object_nla_tracks(obj):
+
+    # Return empty list if invalid object or no animation data
+    if not obj or not hasattr(obj, "animation_data") or not obj.animation_data:
+        log("Invalid object or missing animation data while muting nla tracks", True, "ERROR")
+        return []
+
+
+    # Mute and clear solo on every track and store its original state
+    stored_tracks = []
+    for track in obj.animation_data.nla_tracks:
+        stored_tracks.append((track, track.mute, track.is_solo))
+        track.mute = True
+        track.is_solo = False
+
+    return stored_tracks
+def restore_object_nla_tracks(stored_tracks):
+
+    # Warn and return if no stored track data found to restore
+    if len(stored_tracks) == 0:
+        log("No nla track data found to restore")
+        return
+
+
+    # Reset every track back to its original mute and solo state
+    for track, old_mute, old_solo in stored_tracks:
+        track.mute = old_mute
+        track.is_solo = old_solo
 
 
 # Classes
@@ -1062,6 +1090,7 @@ class SpriteSheetMaker():
 
             # Assign action to all objects
             old_anim_data = []  # [(obj, old_action, old_slot), ...]
+            nla_muted_data = []  # [(obj, [(track, old_mute, old_solo), ...]), ...]
             for (obj, action, slot) in effective_capture_items:
 
                 # Skip if object is invalid or no Action provided or doesn't have attributes
@@ -1070,6 +1099,9 @@ class SpriteSheetMaker():
                 
                 # Store old animation data e.g. Action, Slot, etc
                 old_anim_data.append((obj, obj.animation_data.action, obj.animation_data.action_slot))
+
+                # Mute & store nla tracks
+                nla_muted_data.append((obj, mute_object_nla_tracks(obj)))
 
                 # Assign action
                 obj.animation_data.action = action
@@ -1134,6 +1166,11 @@ class SpriteSheetMaker():
                 obj.animation_data.action = action
                 if(obj.animation_data.action):  # Cannot set slot without valid action
                     obj.animation_data.action_slot = slot
+
+
+            # Restore muted nla tracks 
+            for (obj, muted_tracks) in nla_muted_data:
+                restore_object_nla_tracks(muted_tracks)
             
             
             # pixelate if required

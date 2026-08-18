@@ -43,7 +43,7 @@ A blender addon to convert your 3D animations into 2D sprite sheets with in-buil
 
 
 ## 🛠️ How to install?
-1. Download the plugin from [releases](https://github.com/ManasMakde/SpriteSheetMaker/releases/) or official [blender extension](https://extensions.blender.org/add-ons/sprite-sheet-maker/) site
+1. Download the addon from [releases](https://github.com/ManasMakde/SpriteSheetMaker/releases/) or official [blender extension](https://extensions.blender.org/add-ons/sprite-sheet-maker/) site
 2. If installed from releases, Go to _Edit -> Preferences -> Add-ons -> Install from Disk_ and select the .zip file (make sure it's enabled once installed)
 3. If the installation was successful you should now see the panel as such:  
    ![Sidebar screenshot](images/screenshots/sidebar_screenshot.png)  
@@ -61,7 +61,7 @@ A blender addon to convert your 3D animations into 2D sprite sheets with in-buil
 1. **Export/Import:**  
    ![Export / Import Settings](images/screenshots/export_import_screenshot.png)
 
-   You can use these buttons to export or import your current plugin values for future reusability.  
+   You can use these buttons to export or import your current addon values for future reusability.  
    The values are saved as `.json` file and hence they can also be modified externally.
 
 
@@ -270,6 +270,11 @@ A blender addon to convert your 3D animations into 2D sprite sheets with in-buil
    This creates the entire sprite sheet (or whichever `Combine Mode` is specified) at the given `Output Folder`, While creating you might see a temp folder by the name of "SpriteSheetMakerTemp" do not delete it otherwise the sheet won't be created properly. 
 
 
+> **⚠️ Warning:**  
+> Do not use NLA while using this addon it will cause unexpected behaviour instead just bake multiple actions together into a single action. Look [here](#why-not-use-nla-question) for more info.
+
+
+
 
 ## 🗺️ Example
 <details>
@@ -288,7 +293,7 @@ A blender addon to convert your 3D animations into 2D sprite sheets with in-buil
    Enable _Transparent_    
    ![Switch to Workbench Screenshot](images/screenshots/render_settings_screenshot.png)  
    
-1. Open the plugin and create a new row by clicking on the + button  
+1. Open the addon and create a new row by clicking on the + button  
    ![Add Row Screenshot](images/screenshots/add_row_screenshot.png)  
    This now represents a single row in your sprite sheet.  
 
@@ -345,18 +350,18 @@ If you followed all the steps your sprite sheet should look something like this:
 
 <details><summary><b><i>Why is Blender crashing when I try to create a sprite sheet?</i></b></summary>
 
-   1. You might be trying to render an image that is too big i.e. the value of `Pixels Per Meter` is too high or you're trying to capture a really big object with too much resolution, Try rendering without the plugin first to see if the issue still persists.
+   1. You might be trying to render an image that is too big i.e. the value of `Pixels Per Meter` is too high or you're trying to capture a really big object with too much resolution, Try rendering without the addon first to see if the issue still persists.
    2. You might be trying to render too many frames and your system might not be able to handle it.
 </details>
 
 <details><summary><b><i>How do I see the progress of sprite sheet creation?</i></b></summary>
 
-   You need to open Blender via [console](https://www.youtube.com/watch?v=ijngHwCoDQo) where you can see exactly what the plugin is currently doing.
+   You need to open Blender via [console](https://www.youtube.com/watch?v=ijngHwCoDQo) where you can see exactly what the addon is currently doing.
 </details>
 
 <details><summary><b><i>Why isn't the background transparent?</i></b></summary>
 
-   1. This is not a plugin issue, you have to manually set it in `Render Properties > Film > Transparent` and enable it as shown [here](https://www.youtube.com/watch?v=kgqvS69_X98).
+   1. This is not a addon issue, you have to manually set it in `Render Properties > Film > Transparent` and enable it as shown [here](https://www.youtube.com/watch?v=kgqvS69_X98).
    2. Make sure Output `Properties > Color` is set to RGBA & that `File Format` is .png.
 </details>
 
@@ -372,6 +377,15 @@ If you followed all the steps your sprite sheet should look something like this:
 
    1. Make sure the desired objects are added into the capture items list.
    2. The auto camera perfectly fits the **bounding box** into the view not the object vertices themselves since that would be computationally very expensive. To check this yourself [turn on the bounding box](https://www.youtube.com/watch?v=uL1goLLdIWw).
+</details>
+
+<details id="why-not-use-nla-question" ><summary><b><i>Why does using NLA cause unexpected behaviours?</i></b></summary>
+
+   Blender has no feature to organize NLAs into reusable structures like an "NLA library" and therefore the addon has no way to know which NLA belongs to which row in the sprite sheet.  
+   
+   The addon simply mutes all NLA tracks before rendering but depending on where your "current frame" was in the timeline before rendering the sprite sheet the NLA effects may persist causing inconsistent animations.  
+
+   This is a blender shortcoming not an addon bug.
 </details>
 
 <br/>
