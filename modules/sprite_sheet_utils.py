@@ -6,7 +6,7 @@ import traceback
 import math
 from mathutils import Vector, Matrix
 from enum import Enum
-from .combine_frames import AssembleParam, assemble_images, create_folder, flip_image
+from .combine_frames import AssembleParam, assemble_images, create_folder, flip_image, save_row_settings, SpriteConsistency, SpriteAlign
 from .logging import *
 
 
@@ -94,6 +94,16 @@ class RowParam:
         self.frame_start:int = 0
         self.frame_end:int = 250
         self.frame_count:int = 250
+
+        # Label & output settings
+        self.label_font_size:int = 24
+        self.label_color:tuple = (1.0, 1.0, 1.0, 1.0)
+        self.label_margin:int = 15
+        self.image_margin:int = 15
+        self.sprite_consistency:SpriteConsistency = SpriteConsistency.ROW
+        self.sprite_align:SpriteAlign = SpriteAlign.BOTTOM_CENTER
+        self.label_show_frame_count:bool = False
+        self.label_show_row_size:bool = False
 class SpriteSheetParam:
     def __init__(self):
         self.animation_rows:list[RowParam] = []
@@ -692,7 +702,7 @@ def delete_auto_camera():
 
 
 # Methods
-def assign_objects_visibility(animation_rows):
+def assign_objects_visibility(animation_rows:list[RowParam]):
 
     # Collect every object referenced across all rows capture items
     capture_objects = set()
@@ -1086,6 +1096,20 @@ class SpriteSheetMaker():
             folder_name = f"{i}_{clean_label if clean_label !='' else UNTITLED_FOLDER_NAME}"
             log(f"Creating folder {folder_name}")
             action_dir = create_folder(temp_dir, folder_name)
+
+
+            # Save row settings so Combine Sprites can work standalone off the temp folder
+            row_settings = {
+                "label_font_size": row.label_font_size,
+                "label_color": list(row.label_color),
+                "label_margin": row.label_margin,
+                "image_margin": row.image_margin,
+                "sprite_consistency": row.sprite_consistency.value,
+                "sprite_align": row.sprite_align.value,
+                "label_show_frame_count": row.label_show_frame_count,
+                "label_show_row_size": row.label_show_row_size,
+            }
+            save_row_settings(action_dir, row_settings)
             
 
             # Assign action to all objects

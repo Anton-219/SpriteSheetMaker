@@ -137,6 +137,14 @@ class SSM_RowInfo(PropertyGroup):
     label: StringProperty(name="Label", default="", description="The text that will be added on top of the row in the sprite sheet")
     capture_items: CollectionProperty(type=SSM_CaptureItem)
     capture_item_index: IntProperty(default=0, description="Pointer tracking active item inside collection")
+
+
+    # Collapsible section toggles
+    show_label_settings: BoolProperty(name="Show Label Settings", default=False)
+    show_camera_settings: BoolProperty(name="Show Camera Settings", default=True, description="Hold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "show_camera_settings"))
+    show_pixelation_settings: BoolProperty(name="Show Pixelation Settings", default=False, description="Hold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "show_pixelation_settings"))
+    show_frame_settings: BoolProperty(name="Show Frame Settings", default=True)
+    show_layout_settings: BoolProperty(name="Show Layout Settings", default=False, description="Hold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "show_layout_settings"))
     
     
     # Camera settings
@@ -206,41 +214,29 @@ class SSM_RowInfo(PropertyGroup):
     frame_start: IntProperty(name="Start", default=0, min=-1048574, soft_max=1048574, description="Frame to start capturing from\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "frame_start"))
     frame_end: IntProperty(name="End", default=250, min=-1048574, soft_max=1048574, description="Frame to stop capturing at (inclusive)\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "frame_end"))
     frame_count: IntProperty(name="Count", default=10, min=1, soft_max=1048574, description="Desired frame count after scaling assigned actions\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "frame_count"))
-class SSM_Properties(PropertyGroup):
 
-    def update_temp_folder(self, context):
-        if self.temp_folder.startswith("//"):
-            self.temp_folder = bpy.path.abspath(self.temp_folder)
-    def update_output_folder(self, context):
-        if self.output_folder.startswith("//"):
-            self.output_folder = bpy.path.abspath(self.output_folder)
-    
 
-    # Output settings
-    label_font_size: IntProperty(name="Label Font Size", default=24, min=0, soft_max=1000, description="Font size of label text")
-    label_show_frame_count: BoolProperty(name="Frame Count in Label", default=False, description="If enabled, appends the frame count of each row to its label as ' [<frame count>]'")
-    label_show_row_size: BoolProperty(name="Row Size in Label", default=False, description="If enabled, appends the size of each row to its label as ' (<width>x<height>)'\nIf both 'Frame Count in Label' and this are enabled, frame count is shown first")
-    label_color: FloatVectorProperty(name="Label Color", subtype='COLOR', size=4, default=(1.0, 1.0, 1.0, 1.0), min=0.0, max=1.0, description="Color of the label text on top of each row")
-    background_color: FloatVectorProperty(name="Background Color", subtype='COLOR', size=4, default=(0.0, 0.0, 0.0, 0.0), min=0.0, max=1.0, description="Background color for entire sheet (or rows, or images based on combine mode)")
-    surrounding_margin_top: IntProperty(name="Surrounding Margin Top", default=15, min=0, soft_max=1000, description="Margin (in pixels) to add to the top of the sprite sheet")
-    surrounding_margin_right: IntProperty(name="Surrounding Margin Right", default=15, min=0, soft_max=1000, description="Margin (in pixels) to add to the right of the sprite sheet")
-    surrounding_margin_bottom: IntProperty(name="Surrounding Margin Bottom", default=15, min=0, soft_max=1000, description="Margin (in pixels) to add to the bottom of the sprite sheet")
-    surrounding_margin_left: IntProperty(name="Surrounding Margin Left", default=15, min=0, soft_max=1000, description="Margin (in pixels) to add to the left of the sprite sheet")
-    label_margin: IntProperty(name="Label Margin", default=15, min=0, soft_max=1000, description="Vertical margin gap (in pixels) between the label and the images")
-    image_margin: IntProperty(name="Image Margin", default=15, min=0, soft_max=1000, description="Horizonal margin gap (in pixels) between images within a row/row")
+    # Label & output settings
+    label_font_size: IntProperty(name="Label Font Size", default=24, min=0, soft_max=1000, description="Font size of the label text on top of this row\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "label_font_size"))
+    label_show_frame_count: BoolProperty(name="Frame Count in Label", default=False, description="If enabled, appends the frame count of this row to its label as ' [<frame count>]'\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "label_show_frame_count"))
+    label_show_row_size: BoolProperty(name="Row Size in Label", default=False, description="If enabled, appends the size of this row to its label as ' (<width>x<height>)'\nIf both 'Frame Count in Label' and this are enabled, frame count is shown first\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "label_show_row_size"))
+    label_color: FloatVectorProperty(name="Label Color", subtype='COLOR', size=4, default=(1.0, 1.0, 1.0, 1.0), min=0.0, max=1.0, description="Color of the label text on top of this row\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "label_color"))
+    label_margin: IntProperty(name="Label Margin", default=15, min=0, soft_max=1000, description="Vertical margin gap (in pixels) between the label and the images of this row\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "label_margin"))
+    image_margin: IntProperty(name="Image Margin", default=15, min=0, soft_max=1000, description="Horizonal margin gap (in pixels) between images within this row\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "image_margin"))
     sprite_consistency: EnumProperty(
         name="Sprite Align",
-        description="Dictates the dimension of sprites throughout the sprite sheet",
+        description="Dictates the dimension of sprites throughout this row\nHold Alt & change to sync across all rows",
         items=[
             (SpriteConsistency.INDIVIDUAL.value, "Individual Consistent", "Each sprite fits it's own content"),
-            (SpriteConsistency.ROW.value, "Row Consistent", "All sprites in a row have the same dimensions"),
+            (SpriteConsistency.ROW.value, "Row Consistent", "All sprites in this row have the same dimensions"),
             (SpriteConsistency.ALL.value, "All Consistent", "All sprites throughout the sheet have the same dimensions")
         ],
-        default=SpriteConsistency.ROW.value
+        default=SpriteConsistency.ROW.value,
+        update=lambda self, ctx: self.alt_sync_update(ctx, "sprite_consistency")
     )
     sprite_align: EnumProperty(
         name="Sprite Align",
-        description="Dictates how the content should be aligned within the sprite",
+        description="Dictates how the content should be aligned within the sprite of this row\nHold Alt & change to sync across all rows",
         items=[
             (SpriteAlign.TOP_LEFT.value, "Top Left", "Align content to vertical top & horizontal left"),
             (SpriteAlign.TOP_CENTER.value, "Top Center", "Align content to vertical top & horizontal center"),
@@ -252,8 +248,25 @@ class SSM_Properties(PropertyGroup):
             (SpriteAlign.BOTTOM_CENTER.value, "Bottom Center", "Align content to vertical bottom & horizontal center"),
             (SpriteAlign.BOTTOM_RIGHT.value, "Bottom Right", "Align content to vertical bottom & horizontal right"),
         ],
-        default=SpriteAlign.BOTTOM_CENTER.value
+        default=SpriteAlign.BOTTOM_CENTER.value,
+        update=lambda self, ctx: self.alt_sync_update(ctx, "sprite_align")
     )
+class SSM_Properties(PropertyGroup):
+
+    def update_temp_folder(self, context):
+        if self.temp_folder.startswith("//"):
+            self.temp_folder = bpy.path.abspath(self.temp_folder)
+    def update_output_folder(self, context):
+        if self.output_folder.startswith("//"):
+            self.output_folder = bpy.path.abspath(self.output_folder)
+    
+
+    # Output settings
+    background_color: FloatVectorProperty(name="Background Color", subtype='COLOR', size=4, default=(0.0, 0.0, 0.0, 0.0), min=0.0, max=1.0, description="Background color for entire sheet (or rows, or images based on combine mode)")
+    surrounding_margin_top: IntProperty(name="Surrounding Margin Top", default=15, min=0, soft_max=1000, description="Margin (in pixels) to add to the top of the sprite sheet")
+    surrounding_margin_right: IntProperty(name="Surrounding Margin Right", default=15, min=0, soft_max=1000, description="Margin (in pixels) to add to the right of the sprite sheet")
+    surrounding_margin_bottom: IntProperty(name="Surrounding Margin Bottom", default=15, min=0, soft_max=1000, description="Margin (in pixels) to add to the bottom of the sprite sheet")
+    surrounding_margin_left: IntProperty(name="Surrounding Margin Left", default=15, min=0, soft_max=1000, description="Margin (in pixels) to add to the left of the sprite sheet")
     combine_mode: EnumProperty(
         name="Combine Mode",
         description="Dictates how all the rendered frames will be stitched together",
@@ -368,7 +381,7 @@ class SSM_OT_DuplicateRow(Operator):
             for prop in item.rna_type.properties:
                 if not prop.is_readonly:
                     setattr(dst_item, prop.identifier, getattr(item, prop.identifier))
-
+        
 
         # Set index of row
         new_index = len(rows) - 1
@@ -431,9 +444,9 @@ class SSM_OT_MoveRow(Operator):
             scene.row_index += 1
 
         return {"FINISHED"}
-class SSM_OT_PlayCaptureItems(Operator):
+class SSM_OT_PlayPreview(Operator):
     bl_idname = "spritesheetmaker.play_capture_items"
-    bl_label = "Play Capture Items"
+    bl_label = "Play Preview"
     bl_description = "Preview all animations associated with this row"
     bl_options = {'UNDO'}
 
@@ -443,7 +456,7 @@ class SSM_OT_PlayCaptureItems(Operator):
         scene = context.scene
         si = scene.row_index
         if si < 0 or si >= len(scene.animation_rows):
-            log("No valid row selected to play capture items!")
+            log("No valid row selected to play preview!")
             return {'CANCELLED'}
 
         
@@ -452,6 +465,10 @@ class SSM_OT_PlayCaptureItems(Operator):
         if si < 0 or si >= len(scene.animation_rows) or len(row.capture_items) == 0:
             return {'CANCELLED'}
         
+
+        # Hide all non capture items
+        assign_objects_visibility([gen_row_param(row)])
+
 
         # Assign all actions to respective Objects
         min_frame = float('inf')
@@ -994,10 +1011,137 @@ class SSM_PT_MainPanel(Panel):
     bl_category = 'SpriteSheetMaker'
 
 
+    def draw_camera_settings(self, context, row, ui_box):
+
+        box = ui_box.box()
+        box.prop(row, "show_camera_settings", icon="TRIA_DOWN" if row.show_camera_settings else "TRIA_RIGHT", emboss=False, text="Camera Settings")
+        if not row.show_camera_settings:
+            return
+
+
+        # Custom Camera
+        split = box.split(factor=0.40)
+        split.label(text="Custom Camera")
+        split.prop(row, "custom_camera", text="")
+
+
+        # To Auto Capture
+        box.prop(row, "to_auto_capture")
+        if not row.to_auto_capture:
+            return
+
+
+        # Indent sub props
+        sub_box = box.row().split(factor=0.02)
+        sub_box.label(text="")
+        sub_col = sub_box.column()
+
+        # Camera Direction
+        split = sub_col.split(factor=0.40)
+        split.label(text="Camera Direction")
+        split.prop(row, "camera_direction", text="")
+
+        # Custom Direction
+        if row.camera_direction == CameraDirection.CUSTOM.value:
+            sub_col.prop(row, "camera_orbit_z")
+            sub_col.prop(row, "camera_orbit_x")
+            sub_col.prop(row, "camera_roll")
+
+        # Horizontal Center Object
+        split = sub_col.split(factor=0.40)
+        split.label(text="Center Obj H")
+        col = split.column(align=True)
+        col.prop(row, "h_center_object", text="")
+        if row.h_center_object and row.h_center_object.type == 'ARMATURE':
+            col.prop_search(row, "h_center_bone", row.h_center_object.pose, "bones", text="Bone")
+
+        # Vertical Center Object
+        split = sub_col.split(factor=0.40)
+        split.label(text="Center Obj V")
+        col = split.column(align=True)
+        col.prop(row, "v_center_object", text="")
+        if row.v_center_object and row.v_center_object.type == 'ARMATURE':
+            col.prop_search(row, "v_center_bone", row.v_center_object.pose, "bones", text="Bone")
+
+        # Consider Armature Bones
+        sub_col.prop(row, "consider_armature_bones", text="Consider Armature Bones")
+        sub_col.prop(row, "camera_padding_h", text="Camera Padding H")  # Camera Padding Horizontal
+        sub_col.prop(row, "camera_padding_v", text="Camera Padding V")  # Camera Padding Vertical
+        sub_col.prop(row, "pixels_per_meter", text="Pixels Per Meter")  # Pixels Per Meter
+
+        # Create Auto Camera Button
+        sub_col.separator(factor=0.25)
+        ui_line = sub_col.row()
+        button_text = "Create Auto Camera" if row.custom_camera == None else "Modify Custom Camera"
+        ui_line.operator("spritesheetmaker.create_auto_camera", text=button_text, icon="OUTLINER_OB_CAMERA")
+    def draw_pixelation_settings(self, context, row, ui_box):
+
+        box = ui_box.box()
+        box.prop(row, "show_pixelation_settings", icon="TRIA_DOWN" if row.show_pixelation_settings else "TRIA_RIGHT", emboss=False, text="Pixelation Settings")
+        if not row.show_pixelation_settings:
+            return
+
+
+        # To Pixelate
+        box.prop(row, "to_pixelate")
+        if not row.to_pixelate:
+            return
+
+
+        # Indent sub props
+        sub_box = box.row().split(factor=0.02)
+        sub_box.label(text="")
+        sub_col = sub_box.column()
+
+        sub_col.prop(row, "pixelation_amount", text="Pixelation")  # Pixelation
+        sub_col.prop(row, "color_amount", text="Color Amount")  # Color Amount
+        sub_col.prop(row, "min_alpha", text="Min Alpha")  # Min Alpha
+        sub_col.prop(row, "alpha_step", text="Alpha Step")  # Alpha Step
+
+        # Test Image
+        ui_line = sub_col.row()
+        split = ui_line.split(factor=0.45)
+        split.label(text="Test Image")
+        split.prop(row, "pixelate_image_path", text="")
+
+        # Pixelate Test Image Button
+        ui_line = sub_col.row()
+        ui_line.operator("spritesheetmaker.pixelate_image", text="Pixelate Test Image", icon="MOD_REMESH")
+    def draw_layout_settings(self, context, row, ui_box):
+
+        box = ui_box.box()
+        box.prop(row, "show_layout_settings", icon="TRIA_DOWN" if row.show_layout_settings else "TRIA_RIGHT", emboss=False, text="Layout Settings")
+        if not row.show_layout_settings:
+            return
+
+
+        # Label Color
+        ui_line = box.row()
+        split = ui_line.split(factor=0.45)
+        split.label(text="Label Color")
+        split.prop(row, "label_color", text="")
+
+
+        # Label font size
+        box.prop(row, "label_font_size", text="Label Font Size")
+
+
+        # Frame Count in Label & Row Size in Label
+        box.prop(row, "label_show_frame_count", text="Frame Count in Label")
+        box.prop(row, "label_show_row_size", text="Row Size in Label")
+
+
+        # Label Margin
+        box.prop(row, "label_margin", text="Label Margin")
+
+
+        # Image Margin
+        box.prop(row, "image_margin", text="Image Margin")
     def draw_row_info(self, context, scene, ui_box):
 
-        # Label
         row = scene.animation_rows[scene.row_index]
+
+        # Label
         split = ui_box.split(factor=0.25)
         split.label(text="Label")
         split.prop(row, 'label', text='')
@@ -1012,85 +1156,16 @@ class SSM_PT_MainPanel(Panel):
         col.separator()
         col.operator('spritesheetmaker.add_capture_item', icon='ADD', text='')
         col.operator('spritesheetmaker.remove_capture_item', icon='REMOVE', text='')
-        
-        
-        # Custom Camera
-        split = ui_box.split(factor=0.40)
-        split.label(text="Custom Camera")
-        split.prop(row, "custom_camera", text="")
-        
-
-        # To Auto Capture
-        ui_box.prop(row, "to_auto_capture")
-        if row.to_auto_capture:
-
-            # Indent sub props
-            sub_box = ui_box.row().split(factor=0.02)
-            sub_box.label(text="")
-            sub_col = sub_box.column()
-
-            # Camera Direction
-            split = sub_col.split(factor=0.40)
-            split.label(text="Camera Direction")
-            split.prop(row, "camera_direction", text="")
-
-            # Custom Direction
-            if row.camera_direction == CameraDirection.CUSTOM.value:
-                sub_col.prop(row, "camera_orbit_z")
-                sub_col.prop(row, "camera_orbit_x")
-                sub_col.prop(row, "camera_roll")
-
-            # Horizontal Center Object
-            split = sub_col.split(factor=0.40)
-            split.label(text="Center Obj H")
-            col = split.column(align=True)
-            col.prop(row, "h_center_object", text="")
-            if row.h_center_object and row.h_center_object.type == 'ARMATURE':
-                col.prop_search(row, "h_center_bone", row.h_center_object.pose, "bones", text="Bone")
-
-            # Vertical Center Object
-            split = sub_col.split(factor=0.40)
-            split.label(text="Center Obj V")
-            col = split.column(align=True)
-            col.prop(row, "v_center_object", text="")
-            if row.v_center_object and row.v_center_object.type == 'ARMATURE':
-                col.prop_search(row, "v_center_bone", row.v_center_object.pose, "bones", text="Bone")
-
-            # Consider Armature Bones
-            sub_col.prop(row, "consider_armature_bones", text="Consider Armature Bones")
-            sub_col.prop(row, "camera_padding_h", text="Camera Padding H")  # Camera Padding Horizontal
-            sub_col.prop(row, "camera_padding_v", text="Camera Padding V")  # Camera Padding Vertical
-            sub_col.prop(row, "pixels_per_meter", text="Pixels Per Meter")  # Pixels Per Meter 
-
-            # Create Auto Camera Button
-            sub_col.separator(factor=0.25)
-            ui_line = sub_col.row()
-            button_text = "Create Auto Camera" if row.custom_camera == None else "Modify Custom Camera"
-            ui_line.operator("spritesheetmaker.create_auto_camera", text=button_text, icon="OUTLINER_OB_CAMERA")
 
 
-        # To Pixelate
-        ui_box.prop(row, "to_pixelate")
-        if row.to_pixelate:
-            # Indent sub props
-            sub_box = ui_box.row().split(factor=0.02)
-            sub_box.label(text="")
-            sub_col = sub_box.column()
-            
-            sub_col.prop(row, "pixelation_amount", text="Pixelation")  # Pixelation
-            sub_col.prop(row, "color_amount", text="Color Amount")  # Color Amount
-            sub_col.prop(row, "min_alpha", text="Min Alpha")  # Min Alpha
-            sub_col.prop(row, "alpha_step", text="Alpha Step")  # Alpha Step
+        # Separation
+        ui_box.separator(factor=0.5)
 
-            # Test Image
-            ui_line = sub_col.row()
-            split = ui_line.split(factor=0.45)
-            split.label(text="Test Image")
-            split.prop(row, "pixelate_image_path", text="")
 
-            # Pixelate Test Image Button
-            ui_line = sub_col.row()
-            ui_line.operator("spritesheetmaker.pixelate_image", text="Pixelate Test Image", icon="MOD_REMESH")
+        # Grouped collapsible sections
+        self.draw_camera_settings(context, row, ui_box)
+        self.draw_pixelation_settings(context, row, ui_box)
+        self.draw_layout_settings(context, row, ui_box)
 
 
         # To Flip H & V
@@ -1098,8 +1173,22 @@ class SSM_PT_MainPanel(Panel):
         ui_box.prop(row, "to_flip_v")
         
 
+        # Sprite Consistency
+        ui_line = ui_box.row()
+        split = ui_line.split(factor=0.60)
+        split.label(text="Sprite Consistency")
+        split.prop(row, "sprite_consistency", text="")
+
+
+        # Sprite Align
+        ui_line = ui_box.row()
+        split = ui_line.split(factor=0.60)
+        split.label(text="Sprite Align")
+        split.prop(row, "sprite_align", text="")
+
+
         # Frame Selection
-        split = ui_box.split(factor=0.40)
+        split = ui_box.split(factor=0.60)
         split.label(text="Frame Selection")
         split.prop(row, "frame_selection_mode", text="")
         if row.frame_selection_mode == FrameSelectionMode.CUSTOM_RANGE.value:  # Frame Start & End
@@ -1109,6 +1198,53 @@ class SSM_PT_MainPanel(Panel):
             split.prop(row, 'frame_end', text='End')
         elif row.frame_selection_mode == FrameSelectionMode.CUSTOM_COUNT.value:  # Frame Count
             ui_box.prop(row, 'frame_count', text='Count')
+
+    def draw_output_settings(self, context, props, layout):
+
+        # Return if hidden
+        box = layout.box()
+        box.prop(props, "show_output_settings", icon="TRIA_DOWN" if props.show_output_settings else "TRIA_RIGHT", emboss=False, text="Output Settings")
+        if not props.show_output_settings:
+            return
+
+
+        # Combine Mode
+        ui_line = box.row()
+        split = ui_line.split(factor=0.60)
+        split.label(text="Combine Mode")
+        split.prop(props, "combine_mode", text="")
+
+
+        # Background Color
+        ui_line = box.row()
+        split = ui_line.split(factor=0.45)
+        split.label(text="Background Color")
+        split.prop(props, "background_color", text="")
+
+
+        # Surrounding Margins
+        box.label(text="Surrounding Margins")
+        ui_line = box.row(align=True)  # Create a row layout
+        ui_line.prop(props, "surrounding_margin_top", text="Top")
+        ui_line.prop(props, "surrounding_margin_right", text="Right")
+        ui_line.prop(props, "surrounding_margin_bottom", text="Bottom")
+        ui_line.prop(props, "surrounding_margin_left", text="Left")
+
+
+        # Delete Temp Folder
+        box.prop(props, "delete_temp_folder", text="Delete Temp Folder")
+
+    
+        # Temp Folder
+        ui_line = box.row()
+        split = ui_line.split(factor=0.45)
+        split.label(text="Temp Folder")
+        split.prop(props, "temp_folder", text="")
+
+
+        # Combine Sprites Button
+        ui_line = box.row()
+        ui_line.operator("spritesheetmaker.combine_sprites", text="Combine Sprites", icon="TEXTURE")
     def draw(self, context):
         layout = self.layout
         scene = context.scene
@@ -1163,74 +1299,8 @@ class SSM_PT_MainPanel(Panel):
 
 
         # Output Settings (Collapsible)
-        box = layout.box()
-        box.prop(props, "show_output_settings", icon="TRIA_DOWN" if props.show_output_settings else "TRIA_RIGHT", emboss=False, text="Output Settings")
-        if props.show_output_settings:
-
-            # Label Font Size
-            box.prop(props, "label_font_size", text="Label Font Size")
-
-            # Frame Count in Label & Row Size in Label
-            box.prop(props, "label_show_frame_count", text="Frame Count in Label")
-            box.prop(props, "label_show_row_size", text="Row Size in Label")
-
-            # Label Color
-            ui_line = box.row()
-            split = ui_line.split(factor=0.45)
-            split.label(text="Label Color")
-            split.prop(props, "label_color", text="")
-
-            # Background Color
-            ui_line = box.row()
-            split = ui_line.split(factor=0.45)
-            split.label(text="Background Color")
-            split.prop(props, "background_color", text="")
-
-            # Surrounding Margins
-            box.label(text="Surrounding Margins")
-            ui_line = box.row(align=True)  # Create a row layout
-            ui_line.prop(props, "surrounding_margin_top", text="Top")
-            ui_line.prop(props, "surrounding_margin_right", text="Right")
-            ui_line.prop(props, "surrounding_margin_bottom", text="Bottom")
-            ui_line.prop(props, "surrounding_margin_left", text="Left")
-
-            # Label Margin
-            box.prop(props, "label_margin", text="Label Margin")
-
-            # Image Margin
-            box.prop(props, "image_margin", text="Image Margin")
-            
-            # Sprite Consistency
-            ui_line = box.row()
-            split = ui_line.split(factor=0.60)
-            split.label(text="Sprite Consistency")
-            split.prop(props, "sprite_consistency", text="")
-
-            # Sprite Align
-            ui_line = box.row()
-            split = ui_line.split(factor=0.60)
-            split.label(text="Sprite Align")
-            split.prop(props, "sprite_align", text="")
-
-            # Combine Mode
-            ui_line = box.row()
-            split = ui_line.split(factor=0.60)
-            split.label(text="Combine Mode")
-            split.prop(props, "combine_mode", text="")
-
-            # Delete Temp Folder
-            box.prop(props, "delete_temp_folder", text="Delete Temp Folder")
+        self.draw_output_settings(context, props, layout)
         
-            # Temp Folder
-            ui_line = box.row()
-            split = ui_line.split(factor=0.45)
-            split.label(text="Temp Folder")
-            split.prop(props, "temp_folder", text="")
-
-            # Combine Sprites Button
-            ui_line = box.row()
-            ui_line.operator("spritesheetmaker.combine_sprites", text="Combine Sprites", icon="TEXTURE")
-
 
         # Output folder
         layout.separator(factor=0.5)
@@ -1270,18 +1340,8 @@ def gen_assemble_param():
 
     # Set assemble parameters
     param = AssembleParam()
-    for prop in param.__dict__:
-        if hasattr(props, prop) and prop not in ["surrounding_margin", "consistency", "align", "combine_mode", "label_color", "background_color"]:
-            setattr(param, prop, getattr(props, prop))
-    
-
-    # Manual overrides for Enums and Tuples
     param.surrounding_margin = (props.surrounding_margin_top, props.surrounding_margin_right, props.surrounding_margin_bottom, props.surrounding_margin_left)
-    param.consistency = SpriteConsistency(props.sprite_consistency)
-    param.align = SpriteAlign(props.sprite_align)
     param.combine_mode = CombineMode(props.combine_mode)
-    param.font_size = props.label_font_size
-    param.label_color = tuple(props.label_color)
     param.background_color = tuple(props.background_color)
 
 
@@ -1322,12 +1382,14 @@ def gen_row_param(row):
 
     # Auto copy row properties
     for prop in row_param.__dict__:
-        if hasattr(row, prop) and prop not in ["capture_items", "frame_selection_mode"]:
+        if hasattr(row, prop) and prop not in ["capture_items", "frame_selection_mode", "sprite_consistency", "sprite_align"]:
             setattr(row_param, prop, getattr(row, prop))
 
 
-    # Manual override for Enum
+    # Manual override for Enums
     row_param.frame_selection_mode = FrameSelectionMode(row.frame_selection_mode)
+    row_param.sprite_consistency = SpriteConsistency(row.sprite_consistency)
+    row_param.sprite_align = SpriteAlign(row.sprite_align)
 
 
     # Assign sub params
@@ -1465,7 +1527,7 @@ classes = (
     SSM_OT_AddRow,
     SSM_OT_RemoveRow,
     SSM_OT_MoveRow,
-    SSM_OT_PlayCaptureItems,
+    SSM_OT_PlayPreview,
     SSM_OT_AddCaptureItem,
     SSM_OT_RemoveCaptureItem,
     SSM_OT_CreateAutoCamera,
