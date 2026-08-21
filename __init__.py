@@ -144,7 +144,7 @@ class SSM_RowInfo(PropertyGroup):
     show_camera_settings: BoolProperty(name="Show Camera Settings", default=True, description="Hold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "show_camera_settings"))
     show_pixelation_settings: BoolProperty(name="Show Pixelation Settings", default=False, description="Hold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "show_pixelation_settings"))
     show_frame_settings: BoolProperty(name="Show Frame Settings", default=True)
-    show_layout_settings: BoolProperty(name="Show Layout Settings", default=False, description="Hold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "show_layout_settings"))
+    show_appearance_settings: BoolProperty(name="Show Appearance Settings", default=False, description="Hold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "show_appearance_settings"))
     
     
     # Camera settings
@@ -1111,11 +1111,11 @@ class SSM_PT_MainPanel(Panel):
         # Pixelate Test Image Button
         ui_line = sub_col.row()
         ui_line.operator("spritesheetmaker.pixelate_image", text="Pixelate Test Image", icon="MOD_REMESH")
-    def draw_layout_settings(self, context, row, ui_box):
+    def draw_appearance_settings(self, context, row, ui_box):
 
         box = ui_box.box()
-        box.prop(row, "show_layout_settings", icon="TRIA_DOWN" if row.show_layout_settings else "TRIA_RIGHT", emboss=False, text="Layout Settings")
-        if not row.show_layout_settings:
+        box.prop(row, "show_appearance_settings", icon="TRIA_DOWN" if row.show_appearance_settings else "TRIA_RIGHT", emboss=False, text="Appearance Settings")
+        if not row.show_appearance_settings:
             return
 
 
@@ -1169,7 +1169,7 @@ class SSM_PT_MainPanel(Panel):
         # Grouped collapsible sections
         self.draw_camera_settings(context, row, ui_box)
         self.draw_pixelation_settings(context, row, ui_box)
-        self.draw_layout_settings(context, row, ui_box)
+        self.draw_appearance_settings(context, row, ui_box)
 
 
         # To Flip H & V
