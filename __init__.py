@@ -880,9 +880,11 @@ class SSM_OT_CreateSingleSprite(Operator):
             SPRITE_SHEET_MAKER.create_sprite_sheet(sheet_param, output_path)
             log(f"Created single sprite successfully at {os.path.normpath(output_path)}", True)
             return {'FINISHED'}
+        except SpriteSheetAbortedException as e:
+            log(f"Aborted by user!", True)
+            return {'FINISHED'}
         except Exception as e:
-            error_msg = f"Error occurred while creating single sprite!\n {e} \n {traceback.format_exc()}"
-            log(error_msg, True)
+            log(f"Error occurred while creating single sprite!\n {e} \n {traceback.format_exc()}", True)
             return {'FINISHED'}
 class SSM_OT_CreateSheet(Operator):
     bl_idname = "spritesheetmaker.create_sheet"
@@ -991,13 +993,15 @@ class SSM_OT_CreateSheet(Operator):
             output_path = get_sprite_sheet_path(props.combine_mode)
             SPRITE_SHEET_MAKER.create_sprite_sheet(param, output_path)
             log(f"Created successfully at {os.path.normpath(output_path)}", True)
+        except SpriteSheetAbortedException as e:
+            log(f"Aborted by user!", True)
+            return {'FINISHED'}
         except Exception as e:
-            error_msg = f"Error occurred while trying to create sprite sheet!\n{e}\n{traceback.format_exc()}"
-            log(error_msg, True)
+            log(f"Error occurred while trying to create sprite sheet!\n{e}\n{traceback.format_exc()}", True)
             return {'FINISHED'}
         finally:
             wm.progress_end() # Finish the progress bar
-        
+
 
         return {'FINISHED'}
 
