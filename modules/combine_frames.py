@@ -1,7 +1,8 @@
 import os
 import json
-from PIL import Image, ImageDraw, ImageFont
+import math
 from enum import Enum
+from PIL import Image, ImageDraw, ImageFont
 from .logging import *
 
 
@@ -43,6 +44,9 @@ DEFAULT_SPRITE_CONSISTENCY = SpriteConsistency.ROW
 DEFAULT_SPRITE_ALIGN = SpriteAlign.BOTTOM_CENTER
 DEFAULT_LABEL_SHOW_FRAME_COUNT = False
 DEFAULT_LABEL_SHOW_ROW_SIZE = False
+DEFAULT_MAX_COLUMNS = 0
+DEFAULT_ROW_MARGIN = DEFAULT_LABEL_MARGIN
+DEFAULT_SUB_ROW_MARGIN = DEFAULT_IMAGE_MARGIN
 
 
 # Classes
@@ -52,12 +56,15 @@ class RowData:
         self.label_color:tuple = DEFAULT_LABEL_COLOR
         self.label_font_size:int = DEFAULT_FONT_SIZE
         self.label_margin:int = DEFAULT_LABEL_MARGIN
-        self.images:list = []
+        self.images:list[list] = []
+        self.max_columns:int = DEFAULT_MAX_COLUMNS
         self.consistency:SpriteConsistency = DEFAULT_SPRITE_CONSISTENCY
         self.align:SpriteAlign = DEFAULT_SPRITE_ALIGN
         self.label_show_frame_count:bool = DEFAULT_LABEL_SHOW_FRAME_COUNT
         self.label_show_row_size:bool = DEFAULT_LABEL_SHOW_ROW_SIZE
         self.image_margin:int = DEFAULT_IMAGE_MARGIN
+        self.row_margin:int = DEFAULT_ROW_MARGIN
+        self.sub_row_margin:int = DEFAULT_SUB_ROW_MARGIN
         
         
         # Internal Properties
@@ -160,6 +167,21 @@ def alpha_paste(base_img, src_img, position):
 
     # Properly alpha composite source onto base at given position
     base_img.alpha_composite(src_img, dest=position)
+def has_valid_label(row_data: RowData):
+    return row_data.label_font_size != 0 and row_data.label_text != ""
+def split_into_sub_rows(images, max_columns):
+
+    # Return single sub row containing all images if no column limit set
+    if max_columns <= 0:
+        return [images]
+    
+
+    # Split images into sub rows of max_columns size each
+    sub_rows = []
+    for i in range(0, len(images), max_columns):
+        sub_rows.append(images[i:i + max_columns])
+
+    return sub_rows
 def calc_align_offset(align:SpriteAlign, large_width:int, large_height:int, small_width:int, small_height:int):
 
     x_offset = 0.0
@@ -185,8 +207,52 @@ def calc_align_offset(align:SpriteAlign, large_width:int, large_height:int, smal
 
 
     return int(x_offset), int(y_offset)
-def has_valid_label(row_data: RowData):
-    return row_data.label_font_size != 0 and row_data.label_text != ""
+def calc_sub_row_tallest(sub_row_images:list):
+
+    # Warn and return 0 if sub row is empty
+    if len(sub_row_images) == 0:
+        return 0
+
+
+    return max(img.height for img in sub_row_images)
+def calc_sub_row_size(row_data:RowData, sub_row_images:list, global_img_widest:int, global_img_tallest:int):
+
+    if(row_data.consistency == SpriteConsistency.ALL):
+        return global_img_widest * len(sub_row_images), global_img_tallest
+    
+    if(row_data.consistency == SpriteConsistency.ROW):
+        return row_data.img_widest * len(sub_row_images), row_data.img_tallest
+
+    if(row_data.consistency == SpriteConsistency.INDIVIDUAL):
+        sub_row_width = sum(img.width for img in sub_row_images)
+        sub_row_tallest = calc_sub_row_tallest(sub_row_images)
+        return sub_row_width, sub_row_tallest
+
+    return 0, 0
+def calc_cell_size(row_data:RowData, img, global_img_widest:int, global_img_tallest:int, sub_row_tallest:int):
+
+    if(row_data.consistency == SpriteConsistency.ALL):
+        return global_img_widest, global_img_tallest
+
+    if(row_data.consistency == SpriteConsistency.ROW):
+        return row_data.img_widest, row_data.img_tallest
+
+    if(row_data.consistency == SpriteConsistency.INDIVIDUAL):
+        return img.width, sub_row_tallest
+
+    return 0, 0
+def calc_sub_row_height(row_data:RowData, sub_row_images:list, global_img_tallest:int):
+
+    if(row_data.consistency == SpriteConsistency.ALL):
+        return global_img_tallest
+
+    if(row_data.consistency == SpriteConsistency.ROW):
+        return row_data.img_tallest
+
+    if(row_data.consistency == SpriteConsistency.INDIVIDUAL):
+        return max(img.height for img in sub_row_images)
+
+    return 0
 def save_row_settings(row_dir, settings:dict):
 
     # Warn and return if row dir is invalid
@@ -220,11 +286,14 @@ def create_row_data(label, images, row_settings):
     row_data.label_color = tuple(row_settings.get("label_color", DEFAULT_LABEL_COLOR))
     row_data.label_margin = row_settings.get("label_margin", DEFAULT_LABEL_MARGIN)
     row_data.image_margin = row_settings.get("image_margin", DEFAULT_IMAGE_MARGIN)
+    row_data.row_margin = row_settings.get("row_margin", DEFAULT_ROW_MARGIN)
+    row_data.sub_row_margin = row_settings.get("sub_row_margin", DEFAULT_SUB_ROW_MARGIN)
     row_data.consistency = SpriteConsistency(row_settings.get("sprite_consistency", DEFAULT_SPRITE_CONSISTENCY.value))
     row_data.align = SpriteAlign(row_settings.get("sprite_align", DEFAULT_SPRITE_ALIGN.value))
     row_data.label_show_frame_count = row_settings.get("label_show_frame_count", DEFAULT_LABEL_SHOW_FRAME_COUNT)
     row_data.label_show_row_size = row_settings.get("label_show_row_size", DEFAULT_LABEL_SHOW_ROW_SIZE)
-    row_data.images = images
+    row_data.max_columns = row_settings.get("max_columns", DEFAULT_MAX_COLUMNS)
+    row_data.images = split_into_sub_rows(images, row_data.max_columns)
 
 
     # Add accumulated width, widest img width & tallest img height to row data
@@ -260,8 +329,12 @@ def combine_into_images(param:AssembleParam, rows:list[RowData], global_img_wide
         log(f"Row '{row_data.label_text}' folder created at '{row_folder}'")
 
 
+        # Flatten sub rows back into a single ordered list of images
+        flat_images = [img for sub_row in row_data.images for img in sub_row]
+
+
         # Save images
-        for img_count, img in enumerate(row_data.images):
+        for img_count, img in enumerate(flat_images):
 
             # Get cell size
             large_width, large_height = img.width, img.height
@@ -308,7 +381,8 @@ def combine_into_strips(param:AssembleParam, rows:list[RowData], global_img_wide
 
     # Iterate and create one strip per group
     for row in rows:
-        ext = row.images[0].format if len(row.images) != 0 else DEFAULT_FILE_FORMAT
+        has_images = len(row.images) != 0 and len(row.images[0]) != 0
+        ext = row.images[0][0].format if has_images else DEFAULT_FILE_FORMAT
         strip_output_path = os.path.join(output_path, f"{row.label_text}.{ext.lower()}")
         combine_into_sheet(param, [row], global_img_widest, global_img_tallest, strip_output_path)
 def combine_into_sheet(param:AssembleParam, rows:list[RowData], global_img_widest:int, global_img_tallest:int, output_path:str):
@@ -317,38 +391,35 @@ def combine_into_sheet(param:AssembleParam, rows:list[RowData], global_img_wides
     surrounding_margin = param.surrounding_margin
 
 
-    # Pre-calculate sheet dimensions
+    # Assign prerequisites & Calculate sheet dimensions
     sheet_width = 0
     sheet_height = 0
     for row_count, row_data in enumerate(rows):
 
-        # Calculate content height & width
+        # Calculate combined content width & height of all sub rows
         content_width:int = 0
         content_height:int = 0
-        img_count = len(row_data.images)
-        if(row_data.consistency == SpriteConsistency.INDIVIDUAL):
-            content_width = row_data.img_accum_width
-            content_height = row_data.img_tallest
-        elif(row_data.consistency == SpriteConsistency.ROW):
-            content_width = (row_data.img_widest * img_count)
-            content_height = row_data.img_tallest
-        elif(row_data.consistency == SpriteConsistency.ALL):
-            content_width = (global_img_widest * img_count)
-            content_height = global_img_tallest
-        
+        for sub_row_images in row_data.images:
+            sub_row_width, sub_row_height = calc_sub_row_size(row_data, sub_row_images, global_img_widest, global_img_tallest)
+            content_width = max(content_width, sub_row_width)
+            content_height += sub_row_height
+
 
         # Calculate content margins
-        img_h_margin = row_data.image_margin * (img_count - 1)
-        row_v_margin = row_data.label_margin if row_count + 1 < len(rows) else 0
+        sub_row_h_margin = row_data.image_margin * (max(len(sub_row) for sub_row in row_data.images) - 1) if len(row_data.images) != 0 else 0
+        sub_row_v_margin = row_data.sub_row_margin * (len(row_data.images) - 1) if len(row_data.images) != 0 else 0
+        row_v_margin = row_data.row_margin if row_count + 1 < len(rows) else 0
 
 
-        # Add label postfix & font
-        label_postfix = ""
+        # Add label postfix
         if row_data.label_show_frame_count:  # Add frame count in label
-            label_postfix += f" [{len(row_data.images)}]"
+            total_img_count = sum(len(sub_row) for sub_row in row_data.images)
+            row_data.label_text += f" [{total_img_count}]"
         if row_data.label_show_row_size:  # Add row size in label
-            label_postfix += f" ({content_height} x {content_width + img_h_margin})"
-        row_data.label_text = row_data.label_text + label_postfix
+            row_data.label_text += f" ({content_width} x {content_height + sub_row_v_margin})"
+
+
+        # Add label font
         row_data.label_font = ImageFont.load_default(row_data.label_font_size) if row_data.label_font_size != 0 else None
 
 
@@ -365,8 +436,8 @@ def combine_into_sheet(param:AssembleParam, rows:list[RowData], global_img_wides
         
 
         # Add to total sheet height & width
-        sheet_width = max(sheet_width, content_width + img_h_margin, row_data.label_width)
-        sheet_height += (content_height + row_v_margin) + (row_data.label_height + label_v_margin)
+        sheet_width = max(sheet_width, content_width + sub_row_h_margin, row_data.label_width)
+        sheet_height += (content_height + row_v_margin + sub_row_v_margin) + (row_data.label_height + label_v_margin)
 
 
     # Add surrounding margins to sheet dimensions
@@ -376,8 +447,8 @@ def combine_into_sheet(param:AssembleParam, rows:list[RowData], global_img_wides
 
     # Create sheet
     log(f"Creating sprite sheet {sheet_width}x{sheet_height}")
-    images = rows[0].images
-    img_mode = images[0].mode if len(images)!=0 else DEFAULT_COLOR_MODE
+    has_images = len(rows[0].images) != 0 and len(rows[0].images[0]) != 0
+    img_mode = rows[0].images[0][0].mode if has_images else DEFAULT_COLOR_MODE
     bg_color = color_to_pil(param.background_color, img_mode)
     sheet = Image.new(img_mode, (int(sheet_width), int(sheet_height)), bg_color)
     draw = ImageDraw.Draw(sheet)
@@ -387,13 +458,9 @@ def combine_into_sheet(param:AssembleParam, rows:list[RowData], global_img_wides
     paste_height = surrounding_margin[0]
     for row_count, row_data in enumerate(rows):
 
-        # Reset paste width
-        paste_width = surrounding_margin[3]
-
-
         # Paste label
         if(has_valid_label(row_data)):
-            label_location_x = paste_width + row_data.label_offset[0]
+            label_location_x = surrounding_margin[3] + row_data.label_offset[0]
             label_location_y = paste_height + row_data.label_offset[1]
             label_fill = color_to_pil(row_data.label_color, img_mode)
             draw.text((label_location_x, label_location_y), row_data.label_text, fill=label_fill, font=row_data.label_font, spacing=0)
@@ -401,40 +468,37 @@ def combine_into_sheet(param:AssembleParam, rows:list[RowData], global_img_wides
             log(f"Addded label '{row_data.label_text}' at ({label_location_x},{label_location_y})")
 
 
-        # Paste images
-        for i, img in enumerate(row_data.images):
-            
-            # Get cell size
-            large_width:int = 0 
-            large_height:int = 0
-            if(row_data.consistency == SpriteConsistency.INDIVIDUAL):
-                large_width, large_height = img.width, row_data.img_tallest
-            elif(row_data.consistency == SpriteConsistency.ROW):
-                large_width, large_height = row_data.img_widest, row_data.img_tallest
-            elif(row_data.consistency == SpriteConsistency.ALL):
-                large_width, large_height = global_img_widest, global_img_tallest
-            
+        # Iterate through images
+        flat_images = [img for sub_row in row_data.images for img in sub_row]
+        max_columns = row_data.max_columns if row_data.max_columns > 0 else len(flat_images)
+        sub_row_height = calc_sub_row_height(row_data, row_data.images[0], global_img_tallest)
+        paste_width = surrounding_margin[3]
+        for i, img in enumerate(flat_images):
 
-            # Calculate offset based on alignment & consistency
-            offset_x, offset_y = calc_align_offset(row_data.align, large_width, large_height, img.width, img.height)
-
+            # New sub row after max columns reached
+            if i != 0 and i % max_columns == 0:
+                paste_height += sub_row_height + row_data.sub_row_margin
+                paste_width = surrounding_margin[3]
+                sub_row_height = calc_sub_row_height(row_data, row_data.images[i // max_columns], global_img_tallest)
 
             # Paste image
-            img_location_x = paste_width + offset_x
-            img_location_y = paste_height + offset_y
+            large_width, large_height = calc_cell_size(row_data, img, global_img_widest, global_img_tallest, sub_row_height)
+            offset_x, offset_y = calc_align_offset(row_data.align, large_width, large_height, img.width, img.height)
+            img_location_x, img_location_y = paste_width + offset_x, paste_height + offset_y
             alpha_paste(sheet, img, (int(img_location_x), int(img_location_y)))
             paste_width += large_width + row_data.image_margin
-            log(f"Addded image of frame {i + 1} at ({img_location_x},{img_location_y})")
-        
+            log(f"Added image of frame {i} at ({img_location_x},{img_location_y})")
 
-        # Increase paste height
-        if(row_data.consistency == SpriteConsistency.INDIVIDUAL):
-            paste_height += row_data.img_tallest + row_data.label_margin
-        elif(row_data.consistency == SpriteConsistency.ROW):
-            paste_height += row_data.img_tallest + row_data.label_margin
-        elif(row_data.consistency == SpriteConsistency.ALL):
-            paste_height += global_img_tallest + row_data.label_margin
-        
+
+        # Add last sub row height
+        if len(flat_images) > 0:
+            paste_height += sub_row_height
+
+
+        # Add row margin
+        if row_count + 1 < len(rows):
+            paste_height += row_data.row_margin
+    
 
     # Save the final output sprite sheet
     log(f"Saving sprite sheet to '{output_path}' ...")
@@ -474,6 +538,11 @@ def assemble_images(param:AssembleParam, input_folder_path:str, output_path:str)
         # Create row data
         row_data = create_row_data(label_text, images, row_settings)
         rows.append(row_data)
+
+
+        # Store global widest and tallest images
+        global_img_widest = max(global_img_widest, row_data.img_widest)
+        global_img_tallest = max(global_img_tallest, row_data.img_tallest)
 
 
     # Combine into sheet or strips 

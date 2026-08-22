@@ -1106,10 +1106,13 @@ class SpriteSheetMaker():
                 "label_color": list(row.data.label_color),
                 "label_margin": row.data.label_margin,
                 "image_margin": row.data.image_margin,
+                "row_margin": row.data.row_margin,
+                "sub_row_margin": row.data.sub_row_margin,
                 "sprite_consistency": row.data.consistency.value,
                 "sprite_align": row.data.align.value,
                 "label_show_frame_count": row.data.label_show_frame_count,
                 "label_show_row_size": row.data.label_show_row_size,
+                "max_columns": row.data.max_columns,
             }
             save_row_settings(action_dir, row_settings)
             

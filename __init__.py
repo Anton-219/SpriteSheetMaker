@@ -198,6 +198,10 @@ class SSM_RowInfo(PropertyGroup):
     # Flip settings
     to_flip_h: BoolProperty(name="To Flip H", default=False, description="If enabled the rendered image is flipped horizontally before saving into temp folder\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "to_flip_h"))
     to_flip_v: BoolProperty(name="To Flip V", default=False, description="If enabled the rendered image is flipped vertically before saving into temp folder\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "to_flip_v"))
+
+
+    # Max Columns setting
+    max_columns: IntProperty(name="Max Columns", default=0, min=0, soft_max=1000, description="Maximum sprite columns in this row before wrapping into a new line\nSet to 0 for no limit\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "max_columns"))
     
     
     # Manual frame settings
@@ -224,6 +228,8 @@ class SSM_RowInfo(PropertyGroup):
     label_color: FloatVectorProperty(name="Label Color", subtype='COLOR', size=4, default=(1.0, 1.0, 1.0, 1.0), min=0.0, max=1.0, description="Color of the label text on top of this row\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "label_color"))
     label_margin: IntProperty(name="Label Margin", default=15, min=0, soft_max=1000, description="Vertical margin gap (in pixels) between the label and the images of this row\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "label_margin"))
     image_margin: IntProperty(name="Image Margin", default=15, min=0, soft_max=1000, description="Horizonal margin gap (in pixels) between images within this row\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "image_margin"))
+    row_margin: IntProperty(name="Row Margin", default=15, min=0, soft_max=1000, description="Vertical margin gap (in pixels) between this row and the next row in the sprite sheet\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "row_margin"))
+    sub_row_margin: IntProperty(name="Sub Row Margin", default=15, min=0, soft_max=1000, description="Vertical margin gap (in pixels) between wrapped sub rows caused by Max Columns\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "sub_row_margin"))
     sprite_consistency: EnumProperty(
         name="Sprite Align",
         description="Dictates the dimension of sprites throughout this row\nHold Alt & change to sync across all rows",
@@ -1142,6 +1148,12 @@ class SSM_PT_MainPanel(Panel):
 
         # Image Margin
         box.prop(row, "image_margin", text="Image Margin")
+
+
+        # Row Margin & Sub Row Margin
+        ui_line = box.row(align=True)
+        ui_line.prop(row, "row_margin", text="Row Margin")
+        ui_line.prop(row, "sub_row_margin", text="Sub Row Margin")
     def draw_row_info(self, context, scene, ui_box):
 
         row = scene.animation_rows[scene.row_index]
@@ -1176,6 +1188,10 @@ class SSM_PT_MainPanel(Panel):
         # To Flip H & V
         ui_box.prop(row, "to_flip_h")
         ui_box.prop(row, "to_flip_v")
+
+
+        # Max Columns
+        ui_box.prop(row, "max_columns")
         
 
         # Sprite Consistency
@@ -1401,10 +1417,13 @@ def gen_row_param(row):
     row_param.data.label_color = tuple(row.label_color)
     row_param.data.label_margin = row.label_margin
     row_param.data.image_margin = row.image_margin
+    row_param.data.row_margin = row.row_margin
+    row_param.data.sub_row_margin = row.sub_row_margin
     row_param.data.consistency = SpriteConsistency(row.sprite_consistency)
     row_param.data.align = SpriteAlign(row.sprite_align)
     row_param.data.label_show_frame_count = row.label_show_frame_count
     row_param.data.label_show_row_size = row.label_show_row_size
+    row_param.data.max_columns = row.max_columns
 
 
     # Assign sub params
