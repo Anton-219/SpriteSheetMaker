@@ -12,7 +12,8 @@ EXCLUDE_PATHS = [
     "images",
     ".gitignore",
     "build.py",
-    "README.md"
+    "README.md",
+    "CONTRIBUTING.md",
 ]
 BUILD_ZIP_PREFIX = "sprite_sheet_maker"
 

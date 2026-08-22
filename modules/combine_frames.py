@@ -172,7 +172,7 @@ def has_valid_label(row_data: RowData):
 def split_into_sub_rows(images, max_columns):
 
     # Return single sub row containing all images if no column limit set
-    if max_columns <= 0:
+    if max_columns <= 0 or len(images) == 0:
         return [images]
     
 
@@ -250,7 +250,7 @@ def calc_sub_row_height(row_data:RowData, sub_row_images:list, global_img_talles
         return row_data.img_tallest
 
     if(row_data.consistency == SpriteConsistency.INDIVIDUAL):
-        return max(img.height for img in sub_row_images)
+        return max(img.height for img in sub_row_images) if len(sub_row_images) != 0 else 0
 
     return 0
 def save_row_settings(row_dir, settings:dict):
@@ -399,14 +399,21 @@ def combine_into_sheet(param:AssembleParam, rows:list[RowData], global_img_wides
         # Calculate combined content width & height of all sub rows
         content_width:int = 0
         content_height:int = 0
-        for sub_row_images in row_data.images:
+        widest_index = -1
+        for i, sub_row_images in enumerate(row_data.images):
+
+            # Increase content height
             sub_row_width, sub_row_height = calc_sub_row_size(row_data, sub_row_images, global_img_widest, global_img_tallest)
-            content_width = max(content_width, sub_row_width)
             content_height += sub_row_height
+
+            # Store widest sub row index
+            if sub_row_width > content_width:
+                content_width = sub_row_width
+                widest_index = i
 
 
         # Calculate content margins
-        sub_row_h_margin = row_data.image_margin * (max(len(sub_row) for sub_row in row_data.images) - 1) if len(row_data.images) != 0 else 0
+        sub_row_h_margin = row_data.image_margin * (len(row_data.images[widest_index]) - 1) if widest_index != -1 else 0
         sub_row_v_margin = row_data.sub_row_margin * (len(row_data.images) - 1) if len(row_data.images) != 0 else 0
         row_v_margin = row_data.row_margin if row_count + 1 < len(rows) else 0
 
@@ -416,7 +423,7 @@ def combine_into_sheet(param:AssembleParam, rows:list[RowData], global_img_wides
             total_img_count = sum(len(sub_row) for sub_row in row_data.images)
             row_data.label_text += f" [{total_img_count}]"
         if row_data.label_show_row_size:  # Add row size in label
-            row_data.label_text += f" ({content_width} x {content_height + sub_row_v_margin})"
+            row_data.label_text += f" ({content_width + sub_row_h_margin} x {content_height + sub_row_v_margin})"
 
 
         # Add label font

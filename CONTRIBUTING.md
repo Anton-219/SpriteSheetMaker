@@ -22,6 +22,9 @@ Always make changes in the branch you're contributing for e.g. `5.x`, `4.x`, etc
     14. Does `Create Single Sprite` button work?
     15. Does `Create Sprite Images`/`Create Sprite Rows`/`Create Sprite Sheet` button work?
    
+    <!-- Functionality Checks -->
+    1. Does an animation with 0 frames give empty row?
+
     </details>
-1. Cross verify auto camera code and the math behind it.
+1. Cross verify and/or improve the code and math behind auto camera calculations.
 1. Add a feature to allow external scripts to hook onto certain events in the addon e.g. when the sprite sheet has completed creation, when a single frame has been rendered, when images are about to be stiched together, etc.
