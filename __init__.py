@@ -1386,14 +1386,24 @@ def gen_row_param(row):
 
     # Auto copy row properties
     for prop in row_param.__dict__:
-        if hasattr(row, prop) and prop not in ["capture_items", "frame_selection_mode", "sprite_consistency", "sprite_align"]:
+        if hasattr(row, prop) and prop not in ["capture_items", "frame_selection_mode", "data"]:
             setattr(row_param, prop, getattr(row, prop))
 
 
     # Manual override for Enums
     row_param.frame_selection_mode = FrameSelectionMode(row.frame_selection_mode)
-    row_param.sprite_consistency = SpriteConsistency(row.sprite_consistency)
-    row_param.sprite_align = SpriteAlign(row.sprite_align)
+
+
+    # Copy row data fields
+    row_param.data.label_text = row.label
+    row_param.data.label_font_size = row.label_font_size
+    row_param.data.label_color = tuple(row.label_color)
+    row_param.data.label_margin = row.label_margin
+    row_param.data.image_margin = row.image_margin
+    row_param.data.consistency = SpriteConsistency(row.sprite_consistency)
+    row_param.data.align = SpriteAlign(row.sprite_align)
+    row_param.data.label_show_frame_count = row.label_show_frame_count
+    row_param.data.label_show_row_size = row.label_show_row_size
 
 
     # Assign sub params

@@ -6,7 +6,7 @@ import traceback
 import math
 from mathutils import Vector, Matrix
 from enum import Enum
-from .combine_frames import AssembleParam, assemble_images, create_folder, flip_image, save_row_settings, SpriteConsistency, SpriteAlign
+from .combine_frames import AssembleParam, RowData, assemble_images, create_folder, flip_image, save_row_settings, SpriteConsistency, SpriteAlign
 from .logging import *
 
 
@@ -83,9 +83,10 @@ class PixelateParam:
         self.alpha_step:float = 0.25  # Ensures alpha of color is rounded down to the nearest multiple of "step" (helps reducing gradients)
 class RowParam:
     def __init__(self):
-        self.label:str = ""
+        self.data:RowData = RowData()
+
         self.capture_items = []  # [(Object, Action, Slot), ... ]
-        
+
         self.custom_camera = None
         self.to_auto_capture = False
         self.auto_capture_param = AutoCaptureParam()
@@ -95,21 +96,12 @@ class RowParam:
 
         self.to_flip_h:bool = False
         self.to_flip_v:bool = False
-        
+
         self.frame_selection_mode:FrameSelectionMode = FrameSelectionMode.ALL_FRAMES
         self.frame_start:int = 0
         self.frame_end:int = 250
         self.frame_count:int = 250
 
-        # Label & output settings
-        self.label_font_size:int = 24
-        self.label_color:tuple = (1.0, 1.0, 1.0, 1.0)
-        self.label_margin:int = 15
-        self.image_margin:int = 15
-        self.sprite_consistency:SpriteConsistency = SpriteConsistency.ROW
-        self.sprite_align:SpriteAlign = SpriteAlign.BOTTOM_CENTER
-        self.label_show_frame_count:bool = False
-        self.label_show_row_size:bool = False
 class SpriteSheetParam:
     def __init__(self):
         self.animation_rows:list[RowParam] = []
@@ -1098,11 +1090,11 @@ class SpriteSheetMaker():
 
 
             # Notify starting row creation
-            self.on_sheet_row_creating.broadcast(row.label, frame_end)
+            self.on_sheet_row_creating.broadcast(row.data.label_text, frame_end)
 
 
             # Create folder for this row
-            clean_label = bpy.path.clean_name(row.label.strip())
+            clean_label = bpy.path.clean_name(row.data.label_text.strip())
             folder_name = f"{i}_{clean_label if clean_label !='' else UNTITLED_FOLDER_NAME}"
             log(f"Creating folder {folder_name}")
             action_dir = create_folder(temp_dir, folder_name)
@@ -1110,14 +1102,14 @@ class SpriteSheetMaker():
 
             # Save row settings so Combine Sprites can work standalone off the temp folder
             row_settings = {
-                "label_font_size": row.label_font_size,
-                "label_color": list(row.label_color),
-                "label_margin": row.label_margin,
-                "image_margin": row.image_margin,
-                "sprite_consistency": row.sprite_consistency.value,
-                "sprite_align": row.sprite_align.value,
-                "label_show_frame_count": row.label_show_frame_count,
-                "label_show_row_size": row.label_show_row_size,
+                "label_font_size": row.data.label_font_size,
+                "label_color": list(row.data.label_color),
+                "label_margin": row.data.label_margin,
+                "image_margin": row.data.image_margin,
+                "sprite_consistency": row.data.consistency.value,
+                "sprite_align": row.data.align.value,
+                "label_show_frame_count": row.data.label_show_frame_count,
+                "label_show_row_size": row.data.label_show_row_size,
             }
             save_row_settings(action_dir, row_settings)
             
@@ -1166,8 +1158,8 @@ class SpriteSheetMaker():
 
 
                 # Notify starting
-                log(f"Capturing row '{row.label}' at frame {frame}")
-                self.on_sheet_frame_creating.broadcast(row.label, frame)
+                log(f"Capturing action '{row.data.label_text}' at frame {frame}")
+                self.on_sheet_frame_creating.broadcast(row.data.label_text, frame)
 
                 # Set frame
                 bpy.context.scene.frame_set(frame)
@@ -1188,7 +1180,7 @@ class SpriteSheetMaker():
                 pixelate_dict[sprite_output_file] = None
 
                 # Notify frame completed
-                self.on_sheet_frame_created.broadcast(row.label, frame)
+                self.on_sheet_frame_created.broadcast(row.data.label_text, frame)
 
 
             # Reset original visibility of this row's objects
@@ -1218,7 +1210,7 @@ class SpriteSheetMaker():
 
 
             # Notify completed row creation
-            self.on_sheet_row_created.broadcast(row.label, frame_end)
+            self.on_sheet_row_created.broadcast(row.data.label_text, frame_end)
     def create_sprite_sheet(self, param:SpriteSheetParam, output_path:str):
         
         # Hide all non capture items and show all capture items
