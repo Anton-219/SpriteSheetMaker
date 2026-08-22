@@ -47,13 +47,10 @@ class SpriteSheetAbortedException(Exception):
 class Event:
     def __init__(self):
         self._subscribers = weakref.WeakSet()
-
     def subscribe(self, func):
         self._subscribers.add(func)
-
     def unsubscribe(self, func):
         self._subscribers.discard(func)
-
     def broadcast(self, *args, **kwargs):
         for func in list(self._subscribers):
             func(*args, **kwargs)
@@ -101,7 +98,6 @@ class RowParam:
         self.frame_start:int = 0
         self.frame_end:int = 250
         self.frame_count:int = 250
-
 class SpriteSheetParam:
     def __init__(self):
         self.animation_rows:list[RowParam] = []

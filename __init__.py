@@ -526,8 +526,8 @@ class SSM_OT_PlayPreview(Operator):
         return {'FINISHED'}
 class SSM_OT_AddCaptureItem(Operator):
     bl_idname = "spritesheetmaker.add_capture_item"
-    bl_label = "Add New Capture Item"
-    bl_description = "Add capture item"
+    bl_label = "Add Capture Item"
+    bl_description = "Adds a new capture item"
     bl_options = {'UNDO'}
 
     def execute(self, context):
@@ -542,8 +542,8 @@ class SSM_OT_AddCaptureItem(Operator):
         return {'FINISHED'}
 class SSM_OT_RemoveCaptureItem(Operator):
     bl_idname = "spritesheetmaker.remove_capture_item"
-    bl_label = "Remove Selected Capture Item"
-    bl_description = "Remove capture item"
+    bl_label = "Remove Capture Item"
+    bl_description = "Removes selected capture item"
     bl_options = {'UNDO'}
 
     def execute(self, context):
@@ -1219,7 +1219,6 @@ class SSM_PT_MainPanel(Panel):
             split.prop(row, 'frame_end', text='End')
         elif row.frame_selection_mode == FrameSelectionMode.CUSTOM_COUNT.value:  # Frame Count
             ui_box.prop(row, 'frame_count', text='Count')
-
     def draw_output_settings(self, context, props, layout):
 
         # Return if hidden
@@ -1227,13 +1226,6 @@ class SSM_PT_MainPanel(Panel):
         box.prop(props, "show_output_settings", icon="TRIA_DOWN" if props.show_output_settings else "TRIA_RIGHT", emboss=False, text="Output Settings")
         if not props.show_output_settings:
             return
-
-
-        # Combine Mode
-        ui_line = box.row()
-        split = ui_line.split(factor=0.60)
-        split.label(text="Combine Mode")
-        split.prop(props, "combine_mode", text="")
 
 
         # Background Color
@@ -1329,6 +1321,13 @@ class SSM_PT_MainPanel(Panel):
         split = ui_line.split(factor=0.45)
         split.label(text="Output Folder")
         split.prop(props, "output_folder", text="")
+
+
+        # Combine Mode
+        ui_line = layout.row()
+        split = ui_line.split(factor=0.45)
+        split.label(text="Combine Mode")
+        split.prop(props, "combine_mode", text="")
 
 
         # Create Single Sprite Button
