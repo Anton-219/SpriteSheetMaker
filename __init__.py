@@ -27,6 +27,7 @@ PIXELATE_TEST_IMAGE_POSTFIX = "pixelated"
 UNTITLED_ROW_NAME = "<Untitled>"
 UNTITLED_LABEL_TEXT = "Untitled"
 NON_SERIALIZABLE_PROPERTIES = {"custom_camera", "h_center_object", "v_center_object"} 
+ADDON_VERSION_STR = ".".join(str(v) for v in bl_info["version"])
 
 
 # Classes
@@ -1008,7 +1009,7 @@ class SSM_OT_CreateSheet(Operator):
 
 # Main Panel
 class SSM_PT_MainPanel(Panel):
-    bl_label = "SpriteSheetMaker"
+    bl_label = f"SpriteSheetMaker v{ADDON_VERSION_STR}"
     bl_idname = "SSM_PT_MainPanel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
