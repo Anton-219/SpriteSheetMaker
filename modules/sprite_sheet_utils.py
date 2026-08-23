@@ -6,7 +6,7 @@ import traceback
 import math
 from mathutils import Vector, Matrix
 from enum import Enum
-from .combine_frames import AssembleParam, assemble_images, create_folder, flip_image
+from .combine_frames import AssembleParam, RowData, assemble_images, create_folder, flip_image, save_row_settings, SpriteConsistency, SpriteAlign
 from .logging import *
 
 
@@ -20,6 +20,7 @@ COLOR_AMOUNT_NODE = "ColorAmount"
 MIN_ALPHA_NODE = "MinAlpha"
 ALPHA_STEP_NODE = "AlphaStep"
 UNTITLED_FOLDER_NAME = "Untitled"
+ABORT_FILE_NAME = ".delete_to_abort"
 
 
 # Enums
@@ -37,17 +38,19 @@ class FrameSelectionMode(Enum):
     CUSTOM_COUNT = "Custom Count"
 
 
+# Exceptions
+class SpriteSheetAbortedException(Exception):
+    pass
+
+
 # Classes
 class Event:
     def __init__(self):
         self._subscribers = weakref.WeakSet()
-
     def subscribe(self, func):
         self._subscribers.add(func)
-
     def unsubscribe(self, func):
         self._subscribers.discard(func)
-
     def broadcast(self, *args, **kwargs):
         for func in list(self._subscribers):
             func(*args, **kwargs)
@@ -77,9 +80,10 @@ class PixelateParam:
         self.alpha_step:float = 0.25  # Ensures alpha of color is rounded down to the nearest multiple of "step" (helps reducing gradients)
 class RowParam:
     def __init__(self):
-        self.label:str = ""
+        self.data:RowData = RowData()
+
         self.capture_items = []  # [(Object, Action, Slot), ... ]
-        
+
         self.custom_camera = None
         self.to_auto_capture = False
         self.auto_capture_param = AutoCaptureParam()
@@ -89,7 +93,7 @@ class RowParam:
 
         self.to_flip_h:bool = False
         self.to_flip_v:bool = False
-        
+
         self.frame_selection_mode:FrameSelectionMode = FrameSelectionMode.ALL_FRAMES
         self.frame_start:int = 0
         self.frame_end:int = 250
@@ -692,7 +696,7 @@ def delete_auto_camera():
 
 
 # Methods
-def assign_objects_visibility(animation_rows):
+def assign_objects_visibility(animation_rows:list[RowParam], in_editor = False):
 
     # Collect every object referenced across all rows capture items
     capture_objects = set()
@@ -711,14 +715,19 @@ def assign_objects_visibility(animation_rows):
     # Store original visibility of every object before changing it
     original_visibility = {}
     for obj in bpy.context.scene.objects:
-        original_visibility[obj] = (obj.hide_viewport, obj.hide_render)
+        original_visibility[obj] = (obj.hide_get(), obj.hide_viewport, obj.hide_render)
 
 
     # Hide all non capture objects and show all capture objects
     for obj in bpy.context.scene.objects:
         is_capture_obj = obj in capture_objects
-        obj.hide_viewport = not is_capture_obj
-        obj.hide_render = not is_capture_obj
+
+        # In editor only toggle eye icon so its undoable with Alt H
+        if in_editor:
+            obj.hide_set(not is_capture_obj)
+        else:
+            obj.hide_viewport = not is_capture_obj
+            obj.hide_render = not is_capture_obj
 
     return original_visibility
 def restore_object_visibility(original_visibility):
@@ -730,7 +739,8 @@ def restore_object_visibility(original_visibility):
 
 
     # Reset every object back to its original visibility
-    for obj, (hide_viewport, hide_render) in original_visibility.items():
+    for obj, (hide, hide_viewport, hide_render) in original_visibility.items():
+        obj.hide_set(hide)
         obj.hide_viewport = hide_viewport
         obj.hide_render = hide_render
 def get_strip_fcurves(strip, action):
@@ -983,6 +993,38 @@ def pixelate_images(image_paths:dict[str, str], param:PixelateParam):  # images 
     # Throw exception incase of failure
     if(exception != None):
         raise exception
+def mute_object_nla_tracks(obj):
+
+    # Return empty list if invalid object or no animation data
+    if not obj or not hasattr(obj, "animation_data") or not obj.animation_data:
+        log("Invalid object or missing animation data while muting nla tracks", True, "ERROR")
+        return []
+
+
+    # Mute and clear solo on every track and store its original state
+    stored_tracks = []
+    for track in obj.animation_data.nla_tracks:
+        stored_tracks.append((track, track.mute, track.is_solo))
+        track.mute = True
+        track.is_solo = False
+
+    return stored_tracks
+def restore_object_nla_tracks(stored_tracks):
+
+    # Warn and return if no stored track data found to restore
+    if len(stored_tracks) == 0:
+        log("No nla track data found to restore")
+        return
+
+
+    # Reset every track back to its original mute and solo state
+    for track, old_mute, old_solo in stored_tracks:
+        track.mute = old_mute
+        track.is_solo = old_solo
+def is_abort_requested(abort_file_path):
+
+    # True if user deleted the abort file to cancel the operation
+    return not os.path.exists(abort_file_path)
 
 
 # Classes
@@ -1006,7 +1048,7 @@ class SpriteSheetMaker():
         self.on_sprite_creating.broadcast()
         render(output_path)
         self.on_sprite_created.broadcast()
-    def create_sprite_sheet_impl(self, param:SpriteSheetParam, temp_dir:str, temp_actions:list):
+    def create_sprite_sheet_impl(self, param:SpriteSheetParam, temp_dir:str, temp_actions:list, abort_file_path:str):
 
         # Iterate through actions and capture render for each frame (Each action should have it's own folder (in order) & image names should be 1, 2, 3 for each frame respectively)
         for i, row in enumerate(param.animation_rows):
@@ -1050,18 +1092,36 @@ class SpriteSheetMaker():
 
 
             # Notify starting row creation
-            self.on_sheet_row_creating.broadcast(row.label, frame_end)
+            self.on_sheet_row_creating.broadcast(row.data.label_text, frame_end)
 
 
             # Create folder for this row
-            clean_label = bpy.path.clean_name(row.label.strip())
+            clean_label = bpy.path.clean_name(row.data.label_text.strip())
             folder_name = f"{i}_{clean_label if clean_label !='' else UNTITLED_FOLDER_NAME}"
             log(f"Creating folder {folder_name}")
             action_dir = create_folder(temp_dir, folder_name)
+
+
+            # Save row settings so Combine Sprites can work standalone off the temp folder
+            row_settings = {
+                "label_font_size": row.data.label_font_size,
+                "label_color": list(row.data.label_color),
+                "label_margin": row.data.label_margin,
+                "image_margin": row.data.image_margin,
+                "row_margin": row.data.row_margin,
+                "sub_row_margin": row.data.sub_row_margin,
+                "sprite_consistency": row.data.consistency.value,
+                "sprite_align": row.data.align.value,
+                "label_show_frame_count": row.data.label_show_frame_count,
+                "label_show_row_size": row.data.label_show_row_size,
+                "max_columns": row.data.max_columns,
+            }
+            save_row_settings(action_dir, row_settings)
             
 
             # Assign action to all objects
             old_anim_data = []  # [(obj, old_action, old_slot), ...]
+            nla_muted_data = []  # [(obj, [(track, old_mute, old_solo), ...]), ...]
             for (obj, action, slot) in effective_capture_items:
 
                 # Skip if object is invalid or no Action provided or doesn't have attributes
@@ -1070,6 +1130,9 @@ class SpriteSheetMaker():
                 
                 # Store old animation data e.g. Action, Slot, etc
                 old_anim_data.append((obj, obj.animation_data.action, obj.animation_data.action_slot))
+
+                # Mute & store nla tracks
+                nla_muted_data.append((obj, mute_object_nla_tracks(obj)))
 
                 # Assign action
                 obj.animation_data.action = action
@@ -1094,9 +1157,14 @@ class SpriteSheetMaker():
             pixelate_dict:dict[str, str] = {}  # { <Input path>: <Output path> } (if value is None then key is used)
             for frame in range(frame_start, frame_end + 1):
 
+                # Abort if user deleted the abort file
+                if(is_abort_requested(abort_file_path)):
+                    raise SpriteSheetAbortedException("Sprite sheet creation aborted by user")
+
+
                 # Notify starting
-                log(f"Capturing row '{row.label}' at frame {frame}")
-                self.on_sheet_frame_creating.broadcast(row.label, frame)
+                log(f"Capturing action '{row.data.label_text}' at frame {frame}")
+                self.on_sheet_frame_creating.broadcast(row.data.label_text, frame)
 
                 # Set frame
                 bpy.context.scene.frame_set(frame)
@@ -1117,7 +1185,7 @@ class SpriteSheetMaker():
                 pixelate_dict[sprite_output_file] = None
 
                 # Notify frame completed
-                self.on_sheet_frame_created.broadcast(row.label, frame)
+                self.on_sheet_frame_created.broadcast(row.data.label_text, frame)
 
 
             # Reset original visibility of this row's objects
@@ -1134,6 +1202,11 @@ class SpriteSheetMaker():
                 obj.animation_data.action = action
                 if(obj.animation_data.action):  # Cannot set slot without valid action
                     obj.animation_data.action_slot = slot
+
+
+            # Restore muted nla tracks 
+            for (obj, muted_tracks) in nla_muted_data:
+                restore_object_nla_tracks(muted_tracks)
             
             
             # pixelate if required
@@ -1142,7 +1215,7 @@ class SpriteSheetMaker():
 
 
             # Notify completed row creation
-            self.on_sheet_row_created.broadcast(row.label, frame_end)
+            self.on_sheet_row_created.broadcast(row.data.label_text, frame_end)
     def create_sprite_sheet(self, param:SpriteSheetParam, output_path:str):
         
         # Hide all non capture items and show all capture items
@@ -1151,6 +1224,7 @@ class SpriteSheetMaker():
         original_resolution_x = bpy.context.scene.render.resolution_x
         original_resolution_y = bpy.context.scene.render.resolution_y
         temp_actions = []  # Tracks temp scaled actions so they get deleted even on failure
+        abort_file_path = None  # Path to abort file, user deletes this to cancel
 
 
         # Intentionally kept inside try so that visibility is restored even incase of failure
@@ -1160,9 +1234,15 @@ class SpriteSheetMaker():
             log(f"Creating temp folder '{TEMP_FOLDER_NAME}'")
             temp_dir = create_folder(os.path.dirname(output_path), TEMP_FOLDER_NAME)
 
+
+            # Create abort file, deleting it aborts the operation
+            abort_file_path = os.path.join(temp_dir, ABORT_FILE_NAME)
+            open(abort_file_path, 'w').close()
+            log(f"Created abort file at '{abort_file_path}'")
+
             
             # Create images required for sheet 
-            self.create_sprite_sheet_impl(param, temp_dir, temp_actions)
+            self.create_sprite_sheet_impl(param, temp_dir, temp_actions, abort_file_path)
 
 
             # Combine images together into single file and paste in output
@@ -1172,6 +1252,9 @@ class SpriteSheetMaker():
             # Delete temp folder
             if param.delete_temp_folder:
                 shutil.rmtree(temp_dir)
+        except SpriteSheetAbortedException as e:
+            log(f"Abort file deleted! Aborting sprite sheet creation")
+            raise e
         except Exception as e:
             log(f"Failed while capturing sprite sheet frames: {e} \n {traceback.format_exc()}")
             raise e
@@ -1187,6 +1270,10 @@ class SpriteSheetMaker():
             for temp_action in temp_actions:
                 if temp_action is not None:
                     bpy.data.actions.remove(temp_action)
+
+            # Delete abort file if it still exists
+            if abort_file_path is not None and os.path.exists(abort_file_path):
+                os.remove(abort_file_path)
 
 
         return True
