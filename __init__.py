@@ -475,7 +475,7 @@ class SSM_OT_PlayPreview(Operator):
         
 
         # Hide all non capture items
-        assign_objects_visibility([gen_row_param(row)])
+        assign_objects_visibility([gen_row_param(row)], True)
 
 
         # Assign all actions to respective Objects
@@ -591,7 +591,8 @@ class SSM_OT_ExportSettings(Operator, ExportHelper):
             s_data = {}
             for p in row.rna_type.properties:
                 if not p.is_readonly and p.identifier not in {"capture_items", "name"} and p.identifier not in NON_SERIALIZABLE_PROPERTIES:
-                    s_data[p.identifier] = getattr(row, p.identifier)
+                    prop_value = getattr(row, p.identifier)
+                    s_data[p.identifier] = list(prop_value) if getattr(p, "is_array", False) else prop_value
             
 
             # Store object pointer properties as names since objects are not json serializable
@@ -1032,7 +1033,7 @@ class SSM_PT_MainPanel(Panel):
 
 
         # Custom Camera
-        split = box.split(factor=0.40)
+        split = box.split(factor=0.45)
         split.label(text="Custom Camera")
         split.prop(row, "custom_camera", text="")
 
@@ -1049,7 +1050,7 @@ class SSM_PT_MainPanel(Panel):
         sub_col = sub_box.column()
 
         # Camera Direction
-        split = sub_col.split(factor=0.40)
+        split = sub_col.split(factor=0.45)
         split.label(text="Camera Direction")
         split.prop(row, "camera_direction", text="")
 
@@ -1060,7 +1061,7 @@ class SSM_PT_MainPanel(Panel):
             sub_col.prop(row, "camera_roll")
 
         # Horizontal Center Object
-        split = sub_col.split(factor=0.40)
+        split = sub_col.split(factor=0.45)
         split.label(text="Center Obj H")
         col = split.column(align=True)
         col.prop(row, "h_center_object", text="")
@@ -1068,7 +1069,7 @@ class SSM_PT_MainPanel(Panel):
             col.prop_search(row, "h_center_bone", row.h_center_object.pose, "bones", text="Bone")
 
         # Vertical Center Object
-        split = sub_col.split(factor=0.40)
+        split = sub_col.split(factor=0.45)
         split.label(text="Center Obj V")
         col = split.column(align=True)
         col.prop(row, "v_center_object", text="")
@@ -1197,25 +1198,25 @@ class SSM_PT_MainPanel(Panel):
 
         # Sprite Consistency
         ui_line = ui_box.row()
-        split = ui_line.split(factor=0.60)
+        split = ui_line.split(factor=0.45)
         split.label(text="Sprite Consistency")
         split.prop(row, "sprite_consistency", text="")
 
 
         # Sprite Align
         ui_line = ui_box.row()
-        split = ui_line.split(factor=0.60)
+        split = ui_line.split(factor=0.45)
         split.label(text="Sprite Align")
         split.prop(row, "sprite_align", text="")
 
 
         # Frame Selection
-        split = ui_box.split(factor=0.60)
+        split = ui_box.split(factor=0.45)
         split.label(text="Frame Selection")
         split.prop(row, "frame_selection_mode", text="")
         if row.frame_selection_mode == FrameSelectionMode.CUSTOM_RANGE.value:  # Frame Start & End
             ui_line2 = ui_box.row(align=True)
-            split = ui_line2.split(factor=0.50)
+            split = ui_line2.split(factor=0.45)
             split.prop(row, 'frame_start', text='Start')
             split.prop(row, 'frame_end', text='End')
         elif row.frame_selection_mode == FrameSelectionMode.CUSTOM_COUNT.value:  # Frame Count
@@ -1227,6 +1228,13 @@ class SSM_PT_MainPanel(Panel):
         box.prop(props, "show_output_settings", icon="TRIA_DOWN" if props.show_output_settings else "TRIA_RIGHT", emboss=False, text="Output Settings")
         if not props.show_output_settings:
             return
+
+
+        # Combine Mode
+        ui_line = box.row()
+        split = ui_line.split(factor=0.45)
+        split.label(text="Combine Mode")
+        split.prop(props, "combine_mode", text="")
 
 
         # Background Color
@@ -1322,13 +1330,6 @@ class SSM_PT_MainPanel(Panel):
         split = ui_line.split(factor=0.45)
         split.label(text="Output Folder")
         split.prop(props, "output_folder", text="")
-
-
-        # Combine Mode
-        ui_line = layout.row()
-        split = ui_line.split(factor=0.45)
-        split.label(text="Combine Mode")
-        split.prop(props, "combine_mode", text="")
 
 
         # Create Single Sprite Button

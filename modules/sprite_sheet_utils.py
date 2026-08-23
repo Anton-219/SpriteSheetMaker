@@ -696,7 +696,7 @@ def delete_auto_camera():
 
 
 # Methods
-def assign_objects_visibility(animation_rows:list[RowParam]):
+def assign_objects_visibility(animation_rows:list[RowParam], in_editor = False):
 
     # Collect every object referenced across all rows capture items
     capture_objects = set()
@@ -715,14 +715,19 @@ def assign_objects_visibility(animation_rows:list[RowParam]):
     # Store original visibility of every object before changing it
     original_visibility = {}
     for obj in bpy.context.scene.objects:
-        original_visibility[obj] = (obj.hide_viewport, obj.hide_render)
+        original_visibility[obj] = (obj.hide_get(), obj.hide_viewport, obj.hide_render)
 
 
     # Hide all non capture objects and show all capture objects
     for obj in bpy.context.scene.objects:
         is_capture_obj = obj in capture_objects
-        obj.hide_viewport = not is_capture_obj
-        obj.hide_render = not is_capture_obj
+
+        # In editor only toggle eye icon so its undoable with Alt H
+        if in_editor:
+            obj.hide_set(not is_capture_obj)
+        else:
+            obj.hide_viewport = not is_capture_obj
+            obj.hide_render = not is_capture_obj
 
     return original_visibility
 def restore_object_visibility(original_visibility):
@@ -734,7 +739,8 @@ def restore_object_visibility(original_visibility):
 
 
     # Reset every object back to its original visibility
-    for obj, (hide_viewport, hide_render) in original_visibility.items():
+    for obj, (hide, hide_viewport, hide_render) in original_visibility.items():
+        obj.hide_set(hide)
         obj.hide_viewport = hide_viewport
         obj.hide_render = hide_render
 def get_strip_fcurves(strip, action):
