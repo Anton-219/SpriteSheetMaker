@@ -9,6 +9,7 @@ bl_info = {
 import bpy
 import os
 import json
+import traceback
 from bpy.types import Panel, Operator, PropertyGroup, Object, Action, UIList, Scene
 from bpy_extras.io_utils import ExportHelper, ImportHelper
 from bpy.props import StringProperty, FloatProperty,BoolProperty, PointerProperty, CollectionProperty, IntProperty, EnumProperty, FloatVectorProperty
