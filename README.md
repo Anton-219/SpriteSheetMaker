@@ -102,19 +102,42 @@ A blender addon to convert your 3D animations into 2D sprite sheets with in-buil
       > If the Label is empty and an action is assgined then the Label will automatically be set to the action name.  
       > As long as the Label matches the action name both will remain in sync.  
       > If you don't want this behaviour then simply add an empty space " " at the end of the Label.  
+      
+   - **To Flip H:**  
+      Horizontally flips the rendered image before saving into temp folder.  
+
+   - **To Flip V:**  
+      Vertically flips the rendered image before saving into temp folder.  
    
+   - **Max Columns:**  
+      How many sprites in a row before they wrap down to next sub row. Keep at 0 if no wrapping required.
+   
+   - **Sprite Consistency:**  
+      This dictates what the dimensions of the sprites should be with respect to other sprites.    
+      `Individual Consistent`: Every sprite keeps to its own content's width while matching the height of its row i.e. All sprites have their own dimensions.  
+      `Row Consistent`: Every sprite in the row matches the row's widest sprite in width and tallest sprite in height i.e. All sprites in a row have the same dimensions.  
+      `All Consistent`: Every sprite in the sheet matches the widest sprite in width and tallest sprite in height i.e. All sprites have the same dimensions.  
+   
+   - **Sprite Align:**  
+      Decides how the content should be aligned within the sprite cell.
+   
+   - **Frame Selection:**  
+      Determines which frames are to be rendered  
+      `All Frames`: The start & end frame of longest duration action will be taken.  
+      `Custom Range`: You can manually set the `Start` & `End` frames (inclusive) to capture in the row.  
+      `Custom Count`: All actions will have their number of frames scaled up/down to match `Count`.
+
+
+1. **Camera Settings:**  
+   ![Camera Settings screenshot](images/screenshots/camera_settings_screenshot.png)   
+
    - **Custom Camera:**  
       If provided, this camera will be used to capture images
 
+   - **To Auto Capture**  
+      If enabled and `Custom Camera` is provided then it will be used, If not provided a new camera will be created and will later be deleted after the sprite sheet is created.  
 
-1. **To Auto Capture**  
-   ![Auto Capture screenshot](images/screenshots/auto_capture_screenshot.png)
-
-   These settings will only show up when check box is enabled.  
-
-   If enabled and `Custom Camera` is provided then it will be used, If not provided a new camera will be created and will later be deleted after the sprite sheet is created.  
-   
-   Basically "Auto Capture" modifies the camera automatically such that the bounding box of all capture item objects are perfectly encapsulated within the camera view for each frame of the animation. 
+      Basically "Auto Capture" modifies the camera automatically such that the bounding box of all capture item objects are perfectly encapsulated within the camera view for each frame of the animation. 
 
    - **Camera Direction:**  
       From which direction should the camera be capturing images.  
@@ -150,11 +173,12 @@ A blender addon to convert your 3D animations into 2D sprite sheets with in-buil
       If `Custom Camera` is assigned then it will apply the auto capture properties to it instead of creating a new camera.
 
 
-1. **To Pixelate:**  
-   ![To Pixelate Screenshot](images/screenshots/to_pixelate_screenshot.png)  
+1. **Pixelation Settings:**  
+   ![Pixelation Settings screenshot](images/screenshots/pixelation_settings_screenshot.png)   
 
-   These settings will only show up when check box is enabled.  
-   If enabled then the sprites of this row will be pixelated.  
+   - **To Pixelate:**  
+      These settings will only show up when check box is enabled.  
+      If enabled then the sprites of this row will be pixelated.  
 
    - **Pixelation:**  
       By how much to pixelate the sprites, Higher the value the more the sprites will be pixelated.
@@ -178,23 +202,11 @@ A blender addon to convert your 3D animations into 2D sprite sheets with in-buil
    > If the pixelated sprite quality is improper, Try increasing the `Pixels Per Meter` and trying again. 
 
 
-1. **To Flip H:**  
-   Horizontally flips the rendered image before saving into temp folder. 
+1. **Appearance Settings:**  
+   ![Appearance Settings screenshot](images/screenshots/appearance_settings_screenshot.png)   
 
-
-1. **To Flip V:**  
-   Vertically flips the rendered image before saving into temp folder. 
-
-
-1. **Frame Selection:**  
-   Determines which frames are to be rendered  
-   `All Frames`: The start & end frame of longest duration action will be taken.  
-   `Custom Range`: You can manually set the `Start` & `End` frames (inclusive) to capture in the row.  
-   `Custom Count`: All actions will have their number of frames scaled up/down to match `Count`.
-
-
-1. **Output Settings**  
-   ![Output Settings screenshot](images/screenshots/output_settings_screenshot.png)   
+   - **Label Color:**  
+      The color of the label on top of the row.
 
    - **Label Font Size:**  
       The font size of the action name labels in sprite sheet, If you do not want labels in your sprite sheet you can set it to 0.  
@@ -206,34 +218,32 @@ A blender addon to convert your 3D animations into 2D sprite sheets with in-buil
       If enabled, The width & height will be added into the label of each row.  
       `Image Margin` will be taken into account but not `Surrounding Margings`.
 
-   - **Label Color:**  
-      The color of the label on top of the row.
-
-   - **Background Color:**  
-      The background color of the entire sprite sheet. (Can also be set to transparent)
-   
-   - **Surrounding Margins:**  
-      Margin, in pixels, that should be applied around the borders of the entire sprite sheet.  
-   
    - **Label Margin:**  
       Vertical margin, in pixels, between the label and the images.  
-   
+      
    - **Image Margin:**  
       Horizonal margin, in pixel, between images within a row.  
    
-   - **Sprite Consistency:**  
-      This dictates what the dimensions of the sprites should be with respect to other sprites.    
-      `Individual Consistent`: Every sprite keeps to its own content's width while matching the height of its row i.e. All sprites have their own dimensions.  
-      `Row Consistent`: Every sprite in the row matches the row's widest sprite in width and tallest sprite in height i.e. All sprites in a row have the same dimensions.  
-      `All Consistent`: Every sprite in the sheet matches the widest sprite in width and tallest sprite in height i.e. All sprites have the same dimensions.  
+   - **Row Margin:**  
+      Vertical margin, in pixels, between 2 rows.
    
-   - **Sprite Align:**  
-      Decides how the content should be aligned within the sprite cell.
-   
+   - **Sub Row Margin:**  
+      Vertical margin, in pixels, between 2 sub rows caused by `Max Columns`.
+
+
+1. **Output Settings:**  
+   ![Output Settings screenshot](images/screenshots/output_settings_screenshot.png)   
+
    - **Combine Mode:**  
       `Images`: Creates all sprites in separate files.  
       `Strips`: Creates each row as a seperate file.   
       `Sheet`: Creates a complete sprite sheet as a single file.  
+
+   - **Background Color:**  
+      The background color of the entire sprite sheet. (Can also be set to transparent)
+
+   - **Surrounding Margins:**  
+      Margin, in pixels, that should be applied around the borders of the entire sprite sheet.  
 
    - **Delete Temp Folder:**  
       If enabled, The temporary folder is deleted after creating the sprite sheet.  
@@ -257,22 +267,8 @@ A blender addon to convert your 3D animations into 2D sprite sheets with in-buil
          └── 2.png
       ```
 
-
-1. **Output Folder:**  
-   Folder in which the newly created sprite sheet is saved.
-
-
-1. **Create Single Sprite:**  
-   This renders a single sprite with all settings applied. The label for it is taken from the first `Rows` item.
-
-
-1. **Create Sprite Sheet:**  
-   This creates the entire sprite sheet (or whichever `Combine Mode` is specified) at the given `Output Folder`, While creating you might see a temp folder by the name of "SpriteSheetMakerTemp" do not delete it otherwise the sheet won't be created properly. 
-
-
 > **⚠️ Warning:**  
 > Do not use NLA while using this addon it will cause unexpected behaviour instead just bake multiple actions together into a single action. Look [here](#why-not-use-nla-question) for more info.
-
 
 
 
