@@ -1310,14 +1310,18 @@ class SSM_PT_MainPanel(Panel):
         ops.operator('spritesheetmaker.move_row', icon='TRIA_DOWN', text="").direction = 'DOWN'
 
 
-        # Row Info
+        # Row Info (Collapsible)
         has_row = len(scene.animation_rows) > 0 and 0 <= scene.row_index < len(scene.animation_rows)
         box = layout.box()
-        box.prop(props, "show_row_info", icon="TRIA_DOWN" if props.show_row_info else "TRIA_RIGHT", emboss=False, text=f"Row Info{'' if has_row else ' (Add atleast one row)'}")
+        box.prop(props, "show_row_info", icon="TRIA_DOWN" if props.show_row_info else "TRIA_RIGHT", emboss=False, text=f"Row Info")
         if(props.show_row_info):
-            box.enabled = has_row
             if has_row:
                 self.draw_row_info(context, scene, box)
+            else:
+                row = box.row()
+                row.alignment = 'CENTER'
+                row.enabled = False
+                row.label(text="Add atleast one row first")
 
 
         # Output Settings (Collapsible)
