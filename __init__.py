@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Sprite Sheet Maker",
     "author": "Manas R. Makde",
-    "version": (5, 3, 0),
+    "version": (5, 3, 1),
     "description": "3D to 2D sprite sheet converter with optional pixelation"
 }
 
@@ -10,8 +10,9 @@ import bpy
 import os
 import json
 import traceback
-from bpy.types import Panel, Operator, PropertyGroup, Object, Action, UIList, Scene
+from bpy.app.handlers import persistent
 from bpy_extras.io_utils import ExportHelper, ImportHelper
+from bpy.types import Panel, Operator, PropertyGroup, Object, Action, UIList, Scene
 from bpy.props import StringProperty, FloatProperty,BoolProperty, PointerProperty, CollectionProperty, IntProperty, EnumProperty, FloatVectorProperty
 from .modules.sprite_sheet_utils import *
 from .modules.combine_frames import *
@@ -29,6 +30,7 @@ UNTITLED_ROW_NAME = "<Untitled>"
 UNTITLED_LABEL_TEXT = "Untitled"
 NON_SERIALIZABLE_PROPERTIES = {"custom_camera", "h_center_object", "v_center_object"} 
 ADDON_VERSION_STR = ".".join(str(v) for v in bl_info["version"])
+KEY_LISTENER_START_DELAY = 0.1  # Necessary otherwise "Alt" key listener won't work
 
 
 # Classes
@@ -142,10 +144,8 @@ class SSM_RowInfo(PropertyGroup):
 
 
     # Collapsible section toggles
-    show_label_settings: BoolProperty(name="Show Label Settings", default=False)
-    show_camera_settings: BoolProperty(name="Show Camera Settings", default=True, description="Hold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "show_camera_settings"))
+    show_camera_settings: BoolProperty(name="Show Camera Settings", default=False, description="Hold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "show_camera_settings"))
     show_pixelation_settings: BoolProperty(name="Show Pixelation Settings", default=False, description="Hold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "show_pixelation_settings"))
-    show_frame_settings: BoolProperty(name="Show Frame Settings", default=True)
     show_appearance_settings: BoolProperty(name="Show Appearance Settings", default=False, description="Hold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "show_appearance_settings"))
     
     
@@ -1310,14 +1310,18 @@ class SSM_PT_MainPanel(Panel):
         ops.operator('spritesheetmaker.move_row', icon='TRIA_DOWN', text="").direction = 'DOWN'
 
 
-        # Row Info
+        # Row Info (Collapsible)
         has_row = len(scene.animation_rows) > 0 and 0 <= scene.row_index < len(scene.animation_rows)
         box = layout.box()
-        box.prop(props, "show_row_info", icon="TRIA_DOWN" if props.show_row_info else "TRIA_RIGHT", emboss=False, text=f"Row Info{'' if has_row else ' (Add atleast one row)'}")
+        box.prop(props, "show_row_info", icon="TRIA_DOWN" if props.show_row_info else "TRIA_RIGHT", emboss=False, text=f"Row Info")
         if(props.show_row_info):
-            box.enabled = has_row
             if has_row:
                 self.draw_row_info(context, scene, box)
+            else:
+                row = box.row()
+                row.alignment = 'CENTER'
+                row.enabled = False
+                row.label(text="Add atleast one row first")
 
 
         # Output Settings (Collapsible)
@@ -1575,6 +1579,16 @@ classes = (
 
 
 # Initialize Methods
+@persistent
+def start_key_listener(dummy):
+    # Delay actual invoke since context isnt ready yet during load_post
+    bpy.app.timers.register(invoke_key_listener, first_interval=KEY_LISTENER_START_DELAY)
+def invoke_key_listener():
+    if hasattr(bpy.ops, "spritesheetmaker"):
+        bpy.ops.spritesheetmaker.key_listener('INVOKE_DEFAULT')
+    else:
+        log("Failed to listen for Alt Key!", True, "ERROR")
+    return None
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
@@ -1586,13 +1600,7 @@ def register():
 
 
     # Start listening for "Alt" key
-    def run_auto_listener():
-        if hasattr(bpy.ops, "spritesheetmaker"):
-            bpy.ops.spritesheetmaker.key_listener('INVOKE_DEFAULT')
-        else:
-            log("Failed to listen for Alt Key!")
-        return None
-    bpy.app.timers.register(run_auto_listener, first_interval=0.5) 
+    bpy.app.handlers.load_post.append(start_key_listener)
 def unregister():
     for cls in reversed(classes):
         try:
@@ -1603,6 +1611,12 @@ def unregister():
     del Scene.sprite_sheet_maker_props
     del Scene.animation_rows
     del Scene.row_index
+
+
+    # Stop listening for "Alt" key
+    if start_key_listener in bpy.app.handlers.load_post:
+        log("Stopping key listener")
+        bpy.app.handlers.load_post.remove(start_key_listener)
 
 
 if __name__ == "__main__":
