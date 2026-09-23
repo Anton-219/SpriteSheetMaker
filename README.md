@@ -51,7 +51,6 @@ A blender addon to convert your 3D animations into 2D sprite sheets with in-buil
 
 ## 📖 Terminology  
 ![Sprite Sheet Anatomy](images/sprite_sheet_anatomy.png)  
-![Sprite Sheet Margins](images/sprite_sheet_margins.png)  
 
 
 
@@ -204,12 +203,6 @@ A blender addon to convert your 3D animations into 2D sprite sheets with in-buil
 1. **Appearance Settings:**  
    ![Appearance Settings screenshot](images/screenshots/appearance_settings_screenshot.png)   
 
-   - **Image Margin:**  
-      Horizonal margin, in pixel, between images within a row.  
-   
-   - **Row Margin:**  
-      Vertical margin, in pixels, between 2 rows.
-   
    - **Sub Row Margin:**  
       Vertical margin, in pixels, between 2 sub rows caused by `Max Columns`.
 
@@ -224,9 +217,6 @@ A blender addon to convert your 3D animations into 2D sprite sheets with in-buil
 
    - **Background Color:**  
       The background color of the entire sprite sheet. (Can also be set to transparent)
-
-   - **Surrounding Margins:**  
-      Margin, in pixels, that should be applied around the borders of the entire sprite sheet.  
 
    - **Delete Temp Folder:**  
       If enabled, The temporary folder is deleted after creating the sprite sheet.  
