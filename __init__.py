@@ -36,7 +36,7 @@ KEY_LISTENER_START_DELAY = 0.1  # Necessary otherwise "Alt" key listener won't w
 # Classes
 class SSSM_MessagePopup(Operator):
     bl_idname = "simplified_spritesheetmaker.message_popup"
-    bl_label = "SpriteSheetMaker Message"
+    bl_label = "Simplified SpriteSheetMaker Message"
     message_heading: StringProperty(name="Heading", default="")
     message_icon: StringProperty(name="Icon", default="INFO")
 
@@ -867,7 +867,7 @@ class SSSM_OT_CreateSingleSprite(Operator):
             # Sheet parameters
             sheet_param:SpriteSheetParam = gen_sprite_sheet_param()
             sheet_param.assemble_param.combine_mode = CombineMode.SHEET
-            sheet_param.sssm_animation_rows = [row_param]
+            sheet_param.animation_rows = [row_param]
             sheet_param.delete_temp_folder = True
 
 
@@ -1383,7 +1383,7 @@ def gen_sprite_sheet_param():
 
 
     # Assign rows
-    param.sssm_animation_rows = []
+    param.animation_rows = []
     for row in scene.sssm_animation_rows:
 
         # Skip disabled rows
@@ -1391,7 +1391,7 @@ def gen_sprite_sheet_param():
             continue
 
         row_param = gen_row_param(row)
-        param.sssm_animation_rows.append(row_param)
+        param.animation_rows.append(row_param)
 
 
     # Assign Assemble param
