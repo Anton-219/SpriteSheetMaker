@@ -1104,8 +1104,6 @@ class SpriteSheetMaker():
 
             # Save row settings so Combine Sprites can work standalone off the temp folder
             row_settings = {
-                "image_margin": row.data.image_margin,
-                "row_margin": row.data.row_margin,
                 "sub_row_margin": row.data.sub_row_margin,
                 "sprite_consistency": row.data.consistency.value,
                 "sprite_align": row.data.align.value,
