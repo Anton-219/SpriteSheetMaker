@@ -244,8 +244,16 @@ class SSSM_Properties(PropertyGroup):
         if self.output_folder.startswith("//"):
             self.output_folder = bpy.path.abspath(self.output_folder)
     def update_output_filename(self, context):
-        if not SSSM_Properties._is_setting_output_filename:
-            self.output_filename_manual = True
+        if SSSM_Properties._is_setting_output_filename:
+            return
+
+        # Clearing the field returns it to automatic naming.
+        if self.output_filename.strip() == "":
+            self.output_filename_manual = False
+            sync_output_filename_from_rows(context)
+            return
+
+        self.output_filename_manual = True
     
 
     # Output settings
@@ -1444,6 +1452,16 @@ def get_label_text():
         return row.label
     
     return UNTITLED_LABEL_TEXT
+def get_automatic_output_filename(scene=None):
+    scene = scene if scene else bpy.context.scene
+
+    for row in scene.sssm_animation_rows:
+        if row.label.strip() == "":
+            continue
+
+        return row.label
+
+    return SPRITE_SHEET_NAME
 def sync_output_filename_from_rows(context=None):
     scene = context.scene if context else bpy.context.scene
     props = scene.sssm_props
@@ -1452,17 +1470,9 @@ def sync_output_filename_from_rows(context=None):
     if props.output_filename_manual:
         return
 
-    output_filename = SPRITE_SHEET_NAME
-    for row in scene.sssm_animation_rows:
-        if row.label == "":
-            continue
-
-        output_filename = row.label
-        break
-
     SSSM_Properties._is_setting_output_filename = True
     try:
-        props.output_filename = output_filename
+        props.output_filename = get_automatic_output_filename(scene)
     finally:
         SSSM_Properties._is_setting_output_filename = False
 def get_pixelated_img_path():
@@ -1485,7 +1495,11 @@ def get_sprite_sheet_path(mode, single_sprite = False, use_output_filename = Fal
 
     # Assign file/folder name
     if(use_output_filename):
-        output_filename = bpy.path.clean_name(props.output_filename.strip()) or SPRITE_SHEET_NAME
+        output_filename = props.output_filename.strip()
+        if output_filename == "":
+            output_filename = get_automatic_output_filename()
+
+        output_filename = bpy.path.clean_name(output_filename) or SPRITE_SHEET_NAME
         base_name = f"{output_filename}.{file_ext}" if single_sprite or mode == CombineMode.SHEET.value else output_filename
     elif(single_sprite):
         base_name = f"{SINGLE_SPRITE_NAME}.{file_ext}"
