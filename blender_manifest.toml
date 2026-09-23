@@ -1,11 +1,11 @@
 schema_version = "1.0.0"
-id = "sprite_sheet_maker"
-version = "5.3.1"
-name = "Sprite Sheet Maker"
+id = "simplified_sprite_sheet_maker"
+version = "5.3.2"
+name = "Simplified SpriteSheetMaker"
 tagline = "3D to 2D sprite sheet converter with optional pixelation"
-maintainer = "Manas R. Makde"
+maintainer = "Anton-219"
 type = "add-on"
-website = "https://github.com/ManasMakde/SpriteSheetMaker/"
+website = "https://github.com/Anton-219/SpriteSheetMaker/"
 tags = ["Animation", "Render"]
 blender_version_min = "5.1.0"
 license = [

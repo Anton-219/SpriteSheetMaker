@@ -10,9 +10,10 @@ from .combine_frames import AssembleParam, RowData, assemble_images, create_fold
 from .logging import *
 
 
-TEMP_FOLDER_NAME = "SpriteSheetMakerTemp"
-AUTO_CAMERA_NAME = "AutoSpriteSheetMakerCamera"
-PIXELATE_SCENE_NAME = "SpriteSheetMakerPixelateScene"
+TEMP_FOLDER_NAME = "SimplifiedSpriteSheetMakerTemp"
+AUTO_CAMERA_NAME = "AutoSimplifiedSpriteSheetMakerCamera"
+PIXELATE_SCENE_SOURCE_NAME = "SpriteSheetMakerPixelateScene"
+PIXELATE_SCENE_NAME = "SimplifiedSpriteSheetMakerPixelateScene"
 SPRITE_SHEET_MAKER_BLEND_FILE = "../blend_files/SpriteSheetMaker.blend"
 IMAGE_INPUT_NODE = "ImageInput"
 PIXELATION_AMOUNT_NODE = "PixelationAmount"
@@ -879,17 +880,20 @@ def pixelate_images(image_paths:dict[str, str], param:PixelateParam):  # images 
 
         # Import pixelate scene
         with bpy.data.libraries.load(blend_file_path, link=False) as (data_from, data_to):
-            if PIXELATE_SCENE_NAME in data_from.scenes:  # If scene found
-                log(f"Importing scene '{PIXELATE_SCENE_NAME}' from '{blend_file_path}'")
-                data_to.scenes = [PIXELATE_SCENE_NAME]
+            if PIXELATE_SCENE_SOURCE_NAME in data_from.scenes:  # If scene found
+                log(f"Importing scene '{PIXELATE_SCENE_SOURCE_NAME}' from '{blend_file_path}'")
+                data_to.scenes = [PIXELATE_SCENE_SOURCE_NAME]
             else:  # If scene not found
-                raise Exception(f"scene '{PIXELATE_SCENE_NAME}' not found in {blend_file_path}")
+                raise Exception(f"scene '{PIXELATE_SCENE_SOURCE_NAME}' not found in {blend_file_path}")
 
 
         # return If still no pixelate scene exists 
         pixelate_scene = data_to.scenes[0]
         if not pixelate_scene:
-            raise Exception(f"scene '{PIXELATE_SCENE_NAME}' is invalid!")
+            raise Exception(f"scene '{PIXELATE_SCENE_SOURCE_NAME}' is invalid!")
+
+        # Rename imported runtime scene to avoid clashing with the original add-on.
+        pixelate_scene.name = PIXELATE_SCENE_NAME
     
     
     # Save old scene
@@ -1104,16 +1108,8 @@ class SpriteSheetMaker():
 
             # Save row settings so Combine Sprites can work standalone off the temp folder
             row_settings = {
-                "label_font_size": row.data.label_font_size,
-                "label_color": list(row.data.label_color),
-                "label_margin": row.data.label_margin,
-                "image_margin": row.data.image_margin,
-                "row_margin": row.data.row_margin,
-                "sub_row_margin": row.data.sub_row_margin,
                 "sprite_consistency": row.data.consistency.value,
                 "sprite_align": row.data.align.value,
-                "label_show_frame_count": row.data.label_show_frame_count,
-                "label_show_row_size": row.data.label_show_row_size,
                 "max_columns": row.data.max_columns,
             }
             save_row_settings(action_dir, row_settings)
