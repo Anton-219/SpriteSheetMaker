@@ -5,6 +5,12 @@
 
 A blender addon to convert your 3D animations into 2D sprite sheets with in-built toggleable pixelation
 
+> [!IMPORTANT]
+> **Fork / upstream attribution**  
+> Simplified SpriteSheetMaker is a fork of the original [SpriteSheetMaker](https://github.com/ManasMakde/SpriteSheetMaker) project by [Manas R. Makde](https://github.com/ManasMakde).  
+> The original add-on and the original codebase were created by Manas R. Makde. This fork builds on that work and focuses on a smaller, simplified configuration and UI.  
+> For the original project, its full feature set, documentation, and upstream development, please visit [ManasMakde/SpriteSheetMaker](https://github.com/ManasMakde/SpriteSheetMaker).
+
 ![banner](images/banner.png)
 
 
@@ -395,7 +401,9 @@ Any support motivates to keep the project well maintained, documented & growing.
 
 
 ## 🏆 Credits
-1. [Default Cube YouTube - I Am A Pixel Art Master](https://www.youtube.com/watch?v=AQcovwUHMf0)
+- **Original project and codebase:** [SpriteSheetMaker](https://github.com/ManasMakde/SpriteSheetMaker) by [Manas R. Makde](https://github.com/ManasMakde)
+- **Simplified fork and modifications:** [Anton-219](https://github.com/Anton-219)
+- [Default Cube YouTube - I Am A Pixel Art Master](https://www.youtube.com/watch?v=AQcovwUHMf0)
 
 
 
