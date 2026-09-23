@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Simplified SpriteSheetMaker",
     "author": "Manas R. Makde",
-    "version": (5, 3, 1),
+    "version": (5, 3, 2),
     "description": "3D to 2D sprite sheet converter with optional pixelation"
 }
 
@@ -34,25 +34,6 @@ KEY_LISTENER_START_DELAY = 0.1  # Necessary otherwise "Alt" key listener won't w
 
 
 # Classes
-class SSSM_MessagePopup(Operator):
-    bl_idname = "simplified_spritesheetmaker.message_popup"
-    bl_label = "Simplified SpriteSheetMaker Message"
-    message_heading: StringProperty(name="Heading", default="")
-    message_icon: StringProperty(name="Icon", default="INFO")
-
-    def execute(self, context):
-        return {'FINISHED'}
-    def invoke(self, context, event):
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=500)
-    def draw(self, context):
-        layout = self.layout
-        lines = self.message_heading.split("\n")
-        for i, line in enumerate(lines):
-            layout.label(
-                text=line,
-                icon=self.message_icon if i == 0 else 'BLANK1'
-            )
 class SSSM_CaptureItem(PropertyGroup):
 
     def action_update(self, context):
@@ -1485,7 +1466,6 @@ def get_objects_to_capture(row):
 
 # Initialize Classes
 classes = (
-    SSSM_MessagePopup,
     SSSM_Properties,
     SSSM_CaptureItem,
     SSSM_RowInfo,
