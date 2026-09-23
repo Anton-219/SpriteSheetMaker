@@ -39,7 +39,6 @@ class CombineMode(Enum):
 DEFAULT_SPRITE_CONSISTENCY = SpriteConsistency.ROW
 DEFAULT_SPRITE_ALIGN = SpriteAlign.BOTTOM_CENTER
 DEFAULT_MAX_COLUMNS = 0
-DEFAULT_SUB_ROW_MARGIN = 15
 
 
 # Classes
@@ -50,7 +49,6 @@ class RowData:
         self.max_columns:int = DEFAULT_MAX_COLUMNS
         self.consistency:SpriteConsistency = DEFAULT_SPRITE_CONSISTENCY
         self.align:SpriteAlign = DEFAULT_SPRITE_ALIGN
-        self.sub_row_margin:int = DEFAULT_SUB_ROW_MARGIN
         
         
         # Internal Properties
@@ -261,7 +259,6 @@ def create_row_data(label, images, row_settings):
     # Create row data
     row_data = RowData()
     row_data.label_text = label
-    row_data.sub_row_margin = row_settings.get("sub_row_margin", DEFAULT_SUB_ROW_MARGIN)
     row_data.consistency = SpriteConsistency(row_settings.get("sprite_consistency", DEFAULT_SPRITE_CONSISTENCY.value))
     row_data.align = SpriteAlign(row_settings.get("sprite_align", DEFAULT_SPRITE_ALIGN.value))
     row_data.max_columns = row_settings.get("max_columns", DEFAULT_MAX_COLUMNS)
@@ -359,13 +356,9 @@ def combine_into_sheet(param:AssembleParam, rows:list[RowData], global_img_wides
             content_width = max(content_width, sub_row_width)
 
 
-        # Add vertical spacing created by wrapped sub rows
-        sub_row_v_margin = row_data.sub_row_margin * (len(row_data.images) - 1) if len(row_data.images) != 0 else 0
-
-
         # Add to total sheet height & width
         sheet_width = max(sheet_width, content_width)
-        sheet_height += content_height + sub_row_v_margin
+        sheet_height += content_height
 
 
     # Create sheet
@@ -389,7 +382,7 @@ def combine_into_sheet(param:AssembleParam, rows:list[RowData], global_img_wides
 
             # New sub row after max columns reached
             if i != 0 and i % max_columns == 0:
-                paste_height += sub_row_height + row_data.sub_row_margin
+                paste_height += sub_row_height
                 paste_width = 0
                 sub_row_height = calc_sub_row_height(row_data, row_data.images[i // max_columns], global_img_tallest)
 
