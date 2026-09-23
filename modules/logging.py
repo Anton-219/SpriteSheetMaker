@@ -2,9 +2,23 @@ import bpy
 from datetime import datetime
 
 
-def log(message, show_popup = False, icon="INFO"):
+def log(message, show_popup=False, icon="INFO"):
 
     print(f"[Simplified SpriteSheetMaker {datetime.now()}] {message}")
 
-    if(show_popup):
-        bpy.ops.simplified_spritesheetmaker.message_popup('INVOKE_DEFAULT', **{ "message_heading": message,  "message_icon" : icon })
+    if not show_popup:
+        return
+
+    def draw_popup(self, context):
+        lines = str(message).split("\n")
+        for i, line in enumerate(lines):
+            self.layout.label(
+                text=line,
+                icon=icon if i == 0 else 'BLANK1'
+            )
+
+    bpy.context.window_manager.popup_menu(
+        draw_popup,
+        title="Simplified SpriteSheetMaker",
+        icon=icon
+    )
