@@ -1,5 +1,5 @@
 bl_info = {
-    "name": "Sprite Sheet Maker",
+    "name": "Simplified SpriteSheetMaker",
     "author": "Manas R. Makde",
     "version": (5, 3, 1),
     "description": "3D to 2D sprite sheet converter with optional pixelation"
@@ -23,8 +23,8 @@ from .modules.logging import *
 SPRITE_SHEET_MAKER = SpriteSheetMaker()
 SINGLE_SPRITE_NAME = "sprite"
 SPRITE_SHEET_NAME = "sprite_sheet"
-DEFAULT_OUTPUT_FOLDER_NAME = "SpriteSheetMaker"
-DEFAULT_SETTINGS_FILE_NAME = "ssm_settings.json"
+DEFAULT_OUTPUT_FOLDER_NAME = "SimplifiedSpriteSheetMaker"
+DEFAULT_SETTINGS_FILE_NAME = "sssm_settings.json"
 PIXELATE_TEST_IMAGE_POSTFIX = "pixelated"
 UNTITLED_ROW_NAME = "<Untitled>"
 UNTITLED_LABEL_TEXT = "Untitled"
@@ -34,8 +34,8 @@ KEY_LISTENER_START_DELAY = 0.1  # Necessary otherwise "Alt" key listener won't w
 
 
 # Classes
-class SSM_MessagePopup(Operator):
-    bl_idname = "spritesheetmaker.message_popup"
+class SSSM_MessagePopup(Operator):
+    bl_idname = "simplified_spritesheetmaker.message_popup"
     bl_label = "SpriteSheetMaker Message"
     message_heading: StringProperty(name="Heading", default="")
     message_icon: StringProperty(name="Icon", default="INFO")
@@ -53,13 +53,13 @@ class SSM_MessagePopup(Operator):
                 text=line,
                 icon=self.message_icon if i == 0 else 'BLANK1'
             )
-class SSM_CaptureItem(PropertyGroup):
+class SSSM_CaptureItem(PropertyGroup):
 
     def action_update(self, context):
 
         # Get row in which action was updated
         self_row = None
-        for row in context.scene.animation_rows:
+        for row in context.scene.sssm_animation_rows:
             for it in row.capture_items:
                 if it == self:
                     self_row = row
@@ -83,7 +83,7 @@ class SSM_CaptureItem(PropertyGroup):
     action: PointerProperty(name="Action", type=Action, description="Animation to be captured in the row", update=action_update)
     slot: StringProperty(name="Slot", default="", description="(Optional)")
     previous_action_name: StringProperty(default="", description="Tracks last assigned action name to detect when it gets removed")
-class SSM_RowInfo(PropertyGroup):
+class SSSM_RowInfo(PropertyGroup):
 
     _is_propagating = False  # used to avoid recursion while propagating property to all rows
 
@@ -109,21 +109,21 @@ class SSM_RowInfo(PropertyGroup):
     def alt_sync_update(self, context, prop_name):
 
         # Return if alt key not held
-        if not SSM_OT_KeyListener.is_alt_pressed:
+        if not SSSM_OT_KeyListener.is_alt_pressed:
             return
 
         # Return if already propagating to avoid recursion
-        if SSM_RowInfo._is_propagating:
+        if SSSM_RowInfo._is_propagating:
             return
 
 
         # Mark as propagating
-        SSM_RowInfo._is_propagating = True
+        SSSM_RowInfo._is_propagating = True
 
         # Copy this property to all other rows
         try:
             new_value = getattr(self, prop_name)
-            for row in context.scene.animation_rows:
+            for row in context.scene.sssm_animation_rows:
                 if row == self or not hasattr(row, prop_name):
                     continue
 
@@ -134,19 +134,18 @@ class SSM_RowInfo(PropertyGroup):
             log(f"Failed to propagate '{prop_name}' across all rows Error {e} \n {traceback.format_exc()}")
 
         # Mark propagating as complete
-        SSM_RowInfo._is_propagating = False
+        SSSM_RowInfo._is_propagating = False
 
 
     enabled: BoolProperty(name="Enabled", default=True, description="If disabled this row will not be included while creating the sprite sheet\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "enabled"))
     label: StringProperty(name="Row Name", default="", description="Name used to identify this row in the UI, output folders, file names and logs")
-    capture_items: CollectionProperty(type=SSM_CaptureItem)
+    capture_items: CollectionProperty(type=SSSM_CaptureItem)
     capture_item_index: IntProperty(default=0, description="Pointer tracking active item inside collection")
 
 
     # Collapsible section toggles
     show_camera_settings: BoolProperty(name="Show Camera Settings", default=False, description="Hold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "show_camera_settings"))
     show_pixelation_settings: BoolProperty(name="Show Pixelation Settings", default=False, description="Hold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "show_pixelation_settings"))
-    show_appearance_settings: BoolProperty(name="Show Appearance Settings", default=False, description="Hold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "show_appearance_settings"))
     
     
     # Camera settings
@@ -223,7 +222,6 @@ class SSM_RowInfo(PropertyGroup):
 
 
     # Row layout settings
-    sub_row_margin: IntProperty(name="Sub Row Margin", default=15, min=0, soft_max=1000, description="Vertical margin gap (in pixels) between wrapped sub rows caused by Max Columns\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "sub_row_margin"))
     sprite_consistency: EnumProperty(
         name="Sprite Align",
         description="Dictates the dimension of sprites throughout this row\nHold Alt & change to sync across all rows",
@@ -252,7 +250,7 @@ class SSM_RowInfo(PropertyGroup):
         default=SpriteAlign.BOTTOM_CENTER.value,
         update=lambda self, ctx: self.alt_sync_update(ctx, "sprite_align")
     )
-class SSM_Properties(PropertyGroup):
+class SSSM_Properties(PropertyGroup):
 
     def update_temp_folder(self, context):
         if self.temp_folder.startswith("//"):
@@ -291,11 +289,11 @@ class SSM_Properties(PropertyGroup):
     # Collapsible section toggles
     show_row_info: BoolProperty(name="Show Row Info", default=False)
     show_output_settings: BoolProperty(name="Show Output Settings", default=False)
-class SSM_UL_AnimationRows(UIList):
+class SSSM_UL_AnimationRows(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
         layout.prop(item, "enabled", text="")
         layout.label(text=item.label if item.label != "" else UNTITLED_ROW_NAME, icon='SEQ_STRIP_DUPLICATE')
-class SSM_UL_CaptureItems(UIList):
+class SSSM_UL_CaptureItems(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
 
         split = layout.split(factor=1/3, align=True)
@@ -306,8 +304,8 @@ class SSM_UL_CaptureItems(UIList):
         col_obj.prop(item, "object", text="")
         col_action.prop(item, "action", text="")
         col_slot.prop(item, "slot", text="Slot")
-class SSM_OT_KeyListener(Operator):
-    bl_idname = "spritesheetmaker.key_listener"
+class SSSM_OT_KeyListener(Operator):
+    bl_idname = "simplified_spritesheetmaker.key_listener"
     bl_label = "Listen for Keys"
     
     is_alt_pressed = False
@@ -322,9 +320,9 @@ class SSM_OT_KeyListener(Operator):
 
         # Check if alt key pressed or released
         if event.value == 'PRESS' and not self.is_alt_pressed:
-            SSM_OT_KeyListener.is_alt_pressed = True
+            SSSM_OT_KeyListener.is_alt_pressed = True
         elif event.value == 'RELEASE' and self.is_alt_pressed:
-            SSM_OT_KeyListener.is_alt_pressed = False
+            SSSM_OT_KeyListener.is_alt_pressed = False
 
         return {'PASS_THROUGH'}
     def invoke(self, context, event):
@@ -341,8 +339,8 @@ class SSM_OT_KeyListener(Operator):
 
 
 # Side Bar Buttons
-class SSM_OT_DuplicateRow(Operator):
-    bl_idname = "spritesheetmaker.duplicate_row"
+class SSSM_OT_DuplicateRow(Operator):
+    bl_idname = "simplified_spritesheetmaker.duplicate_row"
     bl_label = "Duplicate Row"
     bl_description = "Duplicate the selected row"
     bl_options = {'UNDO'}
@@ -350,13 +348,13 @@ class SSM_OT_DuplicateRow(Operator):
     def execute(self, context):
         # Get essentials
         scene = context.scene
-        rows = scene.animation_rows
-        idx = scene.row_index
+        rows = scene.sssm_animation_rows
+        idx = scene.sssm_row_index
 
 
         # Return if no rows exist
         if idx < 0 or idx >= len(rows):
-            return bpy.ops.spritesheetmaker.add_row()
+            return bpy.ops.simplified_spritesheetmaker.add_row()
 
 
         # Store original row
@@ -384,38 +382,38 @@ class SSM_OT_DuplicateRow(Operator):
         new_index = len(rows) - 1
         target_index = idx + 1
         rows.move(new_index, target_index)
-        scene.row_index = target_index
+        scene.sssm_row_index = target_index
 
 
         return {'FINISHED'}
-class SSM_OT_AddRow(Operator):
-    bl_idname = "spritesheetmaker.add_row"
+class SSSM_OT_AddRow(Operator):
+    bl_idname = "simplified_spritesheetmaker.add_row"
     bl_label = "Add Row"
     bl_description = "Add new animation row"
     bl_options = {'UNDO'}
 
     def execute(self, context):
         scene = context.scene
-        scene.animation_rows.add()
+        scene.sssm_animation_rows.add()
         # new.frame_start = 1
         # new.frame_end = 250
-        scene.row_index = len(scene.animation_rows) - 1
+        scene.sssm_row_index = len(scene.sssm_animation_rows) - 1
         return {'FINISHED'}
-class SSM_OT_RemoveRow(Operator):
-    bl_idname = "spritesheetmaker.remove_row"
+class SSSM_OT_RemoveRow(Operator):
+    bl_idname = "simplified_spritesheetmaker.remove_row"
     bl_label = "Remove Row"
     bl_description = "Remove selected animation row"
     bl_options = {'UNDO'}
 
     def execute(self, context):
         scene = context.scene
-        idx = scene.row_index
-        if 0 <= idx < len(scene.animation_rows):
-            scene.animation_rows.remove(idx)
-            scene.row_index = max(0, min(len(scene.animation_rows) - 1, idx - 1))
+        idx = scene.sssm_row_index
+        if 0 <= idx < len(scene.sssm_animation_rows):
+            scene.sssm_animation_rows.remove(idx)
+            scene.sssm_row_index = max(0, min(len(scene.sssm_animation_rows) - 1, idx - 1))
         return {'FINISHED'}
-class SSM_OT_MoveRow(Operator):
-    bl_idname = "spritesheetmaker.move_row"
+class SSSM_OT_MoveRow(Operator):
+    bl_idname = "simplified_spritesheetmaker.move_row"
     bl_label = "Move Row"
     bl_description = "Move animation row up or down"
     bl_options = {'UNDO'}
@@ -429,20 +427,20 @@ class SSM_OT_MoveRow(Operator):
 
     def execute(self, context):
         scene = context.scene
-        idx = scene.row_index
-        rows = scene.animation_rows
+        idx = scene.sssm_row_index
+        rows = scene.sssm_animation_rows
 
         if self.direction == "UP" and idx > 0:
             rows.move(idx, idx - 1)
-            scene.row_index -= 1
+            scene.sssm_row_index -= 1
 
         elif self.direction == "DOWN" and idx < len(rows) - 1:
             rows.move(idx, idx + 1)
-            scene.row_index += 1
+            scene.sssm_row_index += 1
 
         return {"FINISHED"}
-class SSM_OT_PlayPreview(Operator):
-    bl_idname = "spritesheetmaker.play_capture_items"
+class SSSM_OT_PlayPreview(Operator):
+    bl_idname = "simplified_spritesheetmaker.play_capture_items"
     bl_label = "Play Preview"
     bl_description = "Preview all animations associated with this row"
     bl_options = {'UNDO'}
@@ -451,15 +449,15 @@ class SSM_OT_PlayPreview(Operator):
 
         # Return if no valid row selected
         scene = context.scene
-        si = scene.row_index
-        if si < 0 or si >= len(scene.animation_rows):
+        si = scene.sssm_row_index
+        if si < 0 or si >= len(scene.sssm_animation_rows):
             log("No valid row selected to play preview!")
             return {'CANCELLED'}
 
         
         # Return if no capture items
-        row = scene.animation_rows[si]
-        if si < 0 or si >= len(scene.animation_rows) or len(row.capture_items) == 0:
+        row = scene.sssm_animation_rows[si]
+        if si < 0 or si >= len(scene.sssm_animation_rows) or len(row.capture_items) == 0:
             return {'CANCELLED'}
         
 
@@ -514,34 +512,34 @@ class SSM_OT_PlayPreview(Operator):
         
         
         return {'FINISHED'}
-class SSM_OT_AddCaptureItem(Operator):
-    bl_idname = "spritesheetmaker.add_capture_item"
+class SSSM_OT_AddCaptureItem(Operator):
+    bl_idname = "simplified_spritesheetmaker.add_capture_item"
     bl_label = "Add Capture Item"
     bl_description = "Adds a new capture item"
     bl_options = {'UNDO'}
 
     def execute(self, context):
         scene = context.scene
-        si = scene.row_index
-        if si < 0 or si >= len(scene.animation_rows):
+        si = scene.sssm_row_index
+        if si < 0 or si >= len(scene.sssm_animation_rows):
             return {'CANCELLED'}
         
-        row = scene.animation_rows[si]
+        row = scene.sssm_animation_rows[si]
         row.capture_items.add()
         row.capture_item_index = len(row.capture_items) - 1
         return {'FINISHED'}
-class SSM_OT_RemoveCaptureItem(Operator):
-    bl_idname = "spritesheetmaker.remove_capture_item"
+class SSSM_OT_RemoveCaptureItem(Operator):
+    bl_idname = "simplified_spritesheetmaker.remove_capture_item"
     bl_label = "Remove Capture Item"
     bl_description = "Removes selected capture item"
     bl_options = {'UNDO'}
 
     def execute(self, context):
         scene = context.scene
-        si = scene.row_index
-        if si < 0 or si >= len(scene.animation_rows):
+        si = scene.sssm_row_index
+        if si < 0 or si >= len(scene.sssm_animation_rows):
             return {'CANCELLED'}
-        row = scene.animation_rows[si]
+        row = scene.sssm_animation_rows[si]
         ii = row.capture_item_index
         if 0 <= ii < len(row.capture_items):
 
@@ -559,8 +557,8 @@ class SSM_OT_RemoveCaptureItem(Operator):
 
 
 # Primary Buttons
-class SSM_OT_ExportSettings(Operator, ExportHelper):
-    bl_idname = "spritesheetmaker.export_settings"
+class SSSM_OT_ExportSettings(Operator, ExportHelper):
+    bl_idname = "simplified_spritesheetmaker.export_settings"
     bl_label = "Export"
     bl_description = "Save current settings as .json file to import later"
     bl_options = {'UNDO'}
@@ -569,12 +567,12 @@ class SSM_OT_ExportSettings(Operator, ExportHelper):
     filter_glob: StringProperty(default="*.json", options={'HIDDEN'})
 
     def get_export_data(self, context):
-        props = context.scene.sprite_sheet_maker_props
+        props = context.scene.sssm_props
         export_data = { "rows": [], "props": {} }
         
 
         # Store all rows
-        for row in context.scene.animation_rows:
+        for row in context.scene.sssm_animation_rows:
 
             # Store all basic properties e.g. label, custom_camera, etc
             s_data = {}
@@ -635,8 +633,8 @@ class SSM_OT_ExportSettings(Operator, ExportHelper):
         except Exception as e:
             log(f"Failed to export settings Error {e} \n {traceback.format_exc()}", True, "CANCEL")
             return {'CANCELLED'}
-class SSM_OT_ImportSettings(Operator, ImportHelper):
-    bl_idname = "spritesheetmaker.import_settings"
+class SSSM_OT_ImportSettings(Operator, ImportHelper):
+    bl_idname = "simplified_spritesheetmaker.import_settings"
     bl_label = "Import"
     bl_description = "Import saved settings from .json file"
     bl_options = {'UNDO'}
@@ -648,19 +646,19 @@ class SSM_OT_ImportSettings(Operator, ImportHelper):
     def load_import_data(self, context, data):
         
         # Get props & scene
-        props = context.scene.sprite_sheet_maker_props
+        props = context.scene.sssm_props
         scene = context.scene
 
 
         # Clear previous animation rows
-        scene.animation_rows.clear()  
+        scene.sssm_animation_rows.clear()  
 
 
         # Create all new rows
         for row_data in data.get("rows", []):
 
             # Add new row
-            row = scene.animation_rows.add()
+            row = scene.sssm_animation_rows.add()
 
             # Load all basic properties e.g. label, etc
             for key, val in row_data.items():
@@ -708,7 +706,7 @@ class SSM_OT_ImportSettings(Operator, ImportHelper):
 
 
         # reset since row count may have changed
-        scene.row_index = 0  
+        scene.sssm_row_index = 0  
     def invoke(self, context, event):
         self.filepath = DEFAULT_SETTINGS_FILE_NAME
         context.window_manager.fileselect_add(self)
@@ -732,8 +730,8 @@ class SSM_OT_ImportSettings(Operator, ImportHelper):
         except Exception as e:
             log(f"Failed to import settings Error {e} \n {traceback.format_exc()}", True, "CANCEL")
             return {'CANCELLED'}
-class SSM_OT_CreateAutoCamera(Operator):
-    bl_idname = "spritesheetmaker.create_auto_camera"
+class SSSM_OT_CreateAutoCamera(Operator):
+    bl_idname = "simplified_spritesheetmaker.create_auto_camera"
     bl_label = "Create Auto Camera"
     bl_description = "Create camera from given auto capture parameters"
     bl_options = {'REGISTER', 'UNDO'}
@@ -747,7 +745,7 @@ class SSM_OT_CreateAutoCamera(Operator):
 
         # Return if any invalid property in row
         curr_row = get_current_row()
-        if(not SSM_OT_CreateSheet.check_row(curr_row)):
+        if(not SSSM_OT_CreateSheet.check_row(curr_row)):
             return {'FINISHED'}
         
 
@@ -757,8 +755,8 @@ class SSM_OT_CreateAutoCamera(Operator):
 
 
         return {'FINISHED'}
-class SSM_OT_PixelateImage(Operator):
-    bl_idname = "spritesheetmaker.pixelate_image"
+class SSSM_OT_PixelateImage(Operator):
+    bl_idname = "simplified_spritesheetmaker.pixelate_image"
     bl_label = "Pixelate Image"
     bl_description = "Pixelate given test image based on the pixelation properties assigned"
     bl_options = {'REGISTER', 'UNDO'}
@@ -789,8 +787,8 @@ class SSM_OT_PixelateImage(Operator):
      
 
         return {'FINISHED'}
-class SSM_OT_CombineSprites(Operator):
-    bl_idname = "spritesheetmaker.combine_sprites"
+class SSSM_OT_CombineSprites(Operator):
+    bl_idname = "simplified_spritesheetmaker.combine_sprites"
     bl_label = "Combine Sprites"
     bl_description = "Combine all sprites from Temp Folder into a single sprite sheet"
     bl_options = {'REGISTER', 'UNDO'}
@@ -798,7 +796,7 @@ class SSM_OT_CombineSprites(Operator):
     def execute(self, context):
 
         # Get props
-        props = bpy.context.scene.sprite_sheet_maker_props
+        props = bpy.context.scene.sssm_props
         
 
         # Return if invalid temp folder
@@ -825,8 +823,8 @@ class SSM_OT_CombineSprites(Operator):
      
 
         return {'FINISHED'}
-class SSM_OT_CreateSingleSprite(Operator):
-    bl_idname = "spritesheetmaker.create_single"
+class SSSM_OT_CreateSingleSprite(Operator):
+    bl_idname = "simplified_spritesheetmaker.create_single"
     bl_label = "Create Single Sprite"
     bl_description = "Render out a single sprite of currently selected row\nUseful for verifying settings before rendering the full sheet"
     bl_options = {'REGISTER', 'UNDO'}
@@ -835,18 +833,18 @@ class SSM_OT_CreateSingleSprite(Operator):
         
         # Get Scene & props
         scene = bpy.context.scene
-        props = context.scene.sprite_sheet_maker_props
+        props = context.scene.sssm_props
 
 
         # Return if no rows
-        if(len(scene.animation_rows) == 0):
+        if(len(scene.sssm_animation_rows) == 0):
             log("Empty 'Rows'!", True, "CANCEL")
             return {'FINISHED'}
 
 
         # Return if any invalid property in row
         curr_row = get_current_row()
-        if(not SSM_OT_CreateSheet.check_row(curr_row)):
+        if(not SSSM_OT_CreateSheet.check_row(curr_row)):
             return {'FINISHED'}
         
 
@@ -869,7 +867,7 @@ class SSM_OT_CreateSingleSprite(Operator):
             # Sheet parameters
             sheet_param:SpriteSheetParam = gen_sprite_sheet_param()
             sheet_param.assemble_param.combine_mode = CombineMode.SHEET
-            sheet_param.animation_rows = [row_param]
+            sheet_param.sssm_animation_rows = [row_param]
             sheet_param.delete_temp_folder = True
 
 
@@ -884,8 +882,8 @@ class SSM_OT_CreateSingleSprite(Operator):
         except Exception as e:
             log(f"Error occurred while creating single sprite!\n {e} \n {traceback.format_exc()}", True)
             return {'FINISHED'}
-class SSM_OT_CreateSheet(Operator):
-    bl_idname = "spritesheetmaker.create_sheet"
+class SSSM_OT_CreateSheet(Operator):
+    bl_idname = "simplified_spritesheetmaker.create_sheet"
     bl_label = "Create Sprite Sheet"
     bl_description = "Render out the entire sprite sheet"
     bl_options = {'REGISTER', 'UNDO'}
@@ -944,28 +942,28 @@ class SSM_OT_CreateSheet(Operator):
 
         # Get Scene & props
         scene = bpy.context.scene
-        props = context.scene.sprite_sheet_maker_props
+        props = context.scene.sssm_props
 
 
         # Return if no rows
-        if(len(scene.animation_rows) == 0):
+        if(len(scene.sssm_animation_rows) == 0):
             log("Empty 'Rows'!", True, "CANCEL")
             return {'FINISHED'}
 
 
         # Return if no rows are enabled
-        if(not any(row.enabled for row in scene.animation_rows)):
+        if(not any(row.enabled for row in scene.sssm_animation_rows)):
             log("No 'Rows' are enabled!", True, "CANCEL")
             return {'FINISHED'}
         
 
         # Return in case of anything invalid in row
-        for row in scene.animation_rows:
+        for row in scene.sssm_animation_rows:
 
             if(not row.enabled):
                 continue
     
-            if(not SSM_OT_CreateSheet.check_row(row)):
+            if(not SSSM_OT_CreateSheet.check_row(row)):
                 return {'FINISHED'}
             
 
@@ -1005,12 +1003,12 @@ class SSM_OT_CreateSheet(Operator):
 
 
 # Main Panel
-class SSM_PT_MainPanel(Panel):
-    bl_label = f"SpriteSheetMaker v{ADDON_VERSION_STR}"
-    bl_idname = "SSM_PT_MainPanel"
+class SSSM_PT_MainPanel(Panel):
+    bl_label = f"Simplified SpriteSheetMaker v{ADDON_VERSION_STR}"
+    bl_idname = "SSSM_PT_MainPanel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'SpriteSheetMaker'
+    bl_category = 'Simplified SSM'
 
 
     def draw_camera_settings(self, context, row, ui_box):
@@ -1075,7 +1073,7 @@ class SSM_PT_MainPanel(Panel):
         sub_col.separator(factor=0.25)
         ui_line = sub_col.row()
         button_text = "Create Auto Camera" if row.custom_camera == None else "Modify Custom Camera"
-        ui_line.operator("spritesheetmaker.create_auto_camera", text=button_text, icon="OUTLINER_OB_CAMERA")
+        ui_line.operator("simplified_spritesheetmaker.create_auto_camera", text=button_text, icon="OUTLINER_OB_CAMERA")
     def draw_pixelation_settings(self, context, row, ui_box):
 
         box = ui_box.box()
@@ -1108,20 +1106,10 @@ class SSM_PT_MainPanel(Panel):
 
         # Pixelate Test Image Button
         ui_line = sub_col.row()
-        ui_line.operator("spritesheetmaker.pixelate_image", text="Pixelate Test Image", icon="MOD_REMESH")
-    def draw_appearance_settings(self, context, row, ui_box):
-
-        box = ui_box.box()
-        box.prop(row, "show_appearance_settings", icon="TRIA_DOWN" if row.show_appearance_settings else "TRIA_RIGHT", emboss=False, text="Appearance Settings")
-        if not row.show_appearance_settings:
-            return
-
-
-        # Sub Row Margin
-        box.prop(row, "sub_row_margin", text="Sub Row Margin")
+        ui_line.operator("simplified_spritesheetmaker.pixelate_image", text="Pixelate Test Image", icon="MOD_REMESH")
     def draw_row_info(self, context, scene, ui_box):
 
-        row = scene.animation_rows[scene.row_index]
+        row = scene.sssm_animation_rows[scene.sssm_row_index]
 
         # Row Name
         split = ui_box.split(factor=0.25)
@@ -1132,12 +1120,12 @@ class SSM_PT_MainPanel(Panel):
         # Capture Items
         ui_box.label(text="Capture Items")
         ui_capture_line = ui_box.row()
-        ui_capture_line.template_list('SSM_UL_CaptureItems', '', row, 'capture_items', row, 'capture_item_index', rows=3, maxrows=3)
+        ui_capture_line.template_list('SSSM_UL_CaptureItems', '', row, 'capture_items', row, 'capture_item_index', rows=3, maxrows=3)
         col = ui_capture_line.column(align=True)
-        col.operator('spritesheetmaker.play_capture_items', icon='PLAY', text='')
+        col.operator('simplified_spritesheetmaker.play_capture_items', icon='PLAY', text='')
         col.separator()
-        col.operator('spritesheetmaker.add_capture_item', icon='ADD', text='')
-        col.operator('spritesheetmaker.remove_capture_item', icon='REMOVE', text='')
+        col.operator('simplified_spritesheetmaker.add_capture_item', icon='ADD', text='')
+        col.operator('simplified_spritesheetmaker.remove_capture_item', icon='REMOVE', text='')
 
 
         # Separation
@@ -1147,7 +1135,6 @@ class SSM_PT_MainPanel(Panel):
         # Grouped collapsible sections
         self.draw_camera_settings(context, row, ui_box)
         self.draw_pixelation_settings(context, row, ui_box)
-        self.draw_appearance_settings(context, row, ui_box)
 
 
         # To Flip H & V
@@ -1220,17 +1207,17 @@ class SSM_PT_MainPanel(Panel):
 
         # Combine Sprites Button
         ui_line = box.row()
-        ui_line.operator("spritesheetmaker.combine_sprites", text="Combine Sprites", icon="TEXTURE")
+        ui_line.operator("simplified_spritesheetmaker.combine_sprites", text="Combine Sprites", icon="TEXTURE")
     def draw(self, context):
         layout = self.layout
         scene = context.scene
-        props = context.scene.sprite_sheet_maker_props
+        props = context.scene.sssm_props
 
 
         # Import & Export Buttons
         ui_line = layout.row(align=True)
-        ui_line.operator("spritesheetmaker.export_settings", icon='EXPORT', text="Export")
-        ui_line.operator("spritesheetmaker.import_settings", icon='IMPORT', text="Import")
+        ui_line.operator("simplified_spritesheetmaker.export_settings", icon='EXPORT', text="Export")
+        ui_line.operator("simplified_spritesheetmaker.import_settings", icon='IMPORT', text="Import")
         layout.separator(factor=0.5)
         
 
@@ -1239,12 +1226,12 @@ class SSM_PT_MainPanel(Panel):
         box.label(text="Rows")
         ui_line = box.row()
         ui_line.template_list(
-            "SSM_UL_AnimationRows",
+            "SSSM_UL_AnimationRows",
             "",
             scene,
-            "animation_rows",
+            "sssm_animation_rows",
             scene,
-            "row_index",
+            "sssm_row_index",
             rows=4,
             maxrows=4
         )
@@ -1252,20 +1239,20 @@ class SSM_PT_MainPanel(Panel):
 
         # Rows Add & Remove buttons
         ops = ui_line.column(align=True)
-        ops.operator("spritesheetmaker.duplicate_row", icon='DUPLICATE', text='')
+        ops.operator("simplified_spritesheetmaker.duplicate_row", icon='DUPLICATE', text='')
         ops.separator()
-        ops.operator('spritesheetmaker.add_row', icon='ADD', text='')
-        ops.operator('spritesheetmaker.remove_row', icon='REMOVE', text='')
+        ops.operator('simplified_spritesheetmaker.add_row', icon='ADD', text='')
+        ops.operator('simplified_spritesheetmaker.remove_row', icon='REMOVE', text='')
 
 
         # Rows Up & Down buttons
         ops.separator()
-        ops.operator('spritesheetmaker.move_row', icon='TRIA_UP', text="").direction = 'UP'
-        ops.operator('spritesheetmaker.move_row', icon='TRIA_DOWN', text="").direction = 'DOWN'
+        ops.operator('simplified_spritesheetmaker.move_row', icon='TRIA_UP', text="").direction = 'UP'
+        ops.operator('simplified_spritesheetmaker.move_row', icon='TRIA_DOWN', text="").direction = 'DOWN'
 
 
         # Row Info (Collapsible)
-        has_row = len(scene.animation_rows) > 0 and 0 <= scene.row_index < len(scene.animation_rows)
+        has_row = len(scene.sssm_animation_rows) > 0 and 0 <= scene.sssm_row_index < len(scene.sssm_animation_rows)
         box = layout.box()
         box.prop(props, "show_row_info", icon="TRIA_DOWN" if props.show_row_info else "TRIA_RIGHT", emboss=False, text=f"Row Info")
         if(props.show_row_info):
@@ -1294,7 +1281,7 @@ class SSM_PT_MainPanel(Panel):
         layout.separator(factor=0.25)
         ui_line = layout.row()
         ui_line.scale_y = 1.5
-        ui_line.operator("spritesheetmaker.create_single", text="Create Single Sprite", icon="FILE_IMAGE")
+        ui_line.operator("simplified_spritesheetmaker.create_single", text="Create Single Sprite", icon="FILE_IMAGE")
 
 
         # Create Sprite Sheet Button
@@ -1308,14 +1295,14 @@ class SSM_PT_MainPanel(Panel):
         layout.separator(factor=0.25)
         ui_line = layout.row()
         ui_line.scale_y = 1.5
-        ui_line.operator("spritesheetmaker.create_sheet", text=create_btn_text, icon="RENDER_ANIMATION")
+        ui_line.operator("simplified_spritesheetmaker.create_sheet", text=create_btn_text, icon="RENDER_ANIMATION")
 
 
 # Param Methods
 def gen_assemble_param():
 
     # Get all props
-    props = bpy.context.scene.sprite_sheet_maker_props
+    props = bpy.context.scene.sssm_props
 
 
     # Set assemble parameters
@@ -1371,7 +1358,6 @@ def gen_row_param(row):
 
     # Copy row data fields
     row_param.data.label_text = row.label
-    row_param.data.sub_row_margin = row.sub_row_margin
     row_param.data.consistency = SpriteConsistency(row.sprite_consistency)
     row_param.data.align = SpriteAlign(row.sprite_align)
     row_param.data.max_columns = row.max_columns
@@ -1385,7 +1371,7 @@ def gen_row_param(row):
 def gen_sprite_sheet_param():
 
     # Get all props & scene
-    props = bpy.context.scene.sprite_sheet_maker_props
+    props = bpy.context.scene.sssm_props
     scene = bpy.context.scene
     param = SpriteSheetParam()
 
@@ -1397,15 +1383,15 @@ def gen_sprite_sheet_param():
 
 
     # Assign rows
-    param.animation_rows = []
-    for row in scene.animation_rows:
+    param.sssm_animation_rows = []
+    for row in scene.sssm_animation_rows:
 
         # Skip disabled rows
         if(not row.enabled):
             continue
 
         row_param = gen_row_param(row)
-        param.animation_rows.append(row_param)
+        param.sssm_animation_rows.append(row_param)
 
 
     # Assign Assemble param
@@ -1432,11 +1418,11 @@ def is_valid(obj, check_for_none = True):
     return obj_name in bpy.context.view_layer.objects
 def get_current_row():
     scene = bpy.context.scene
-    rows = scene.animation_rows
+    rows = scene.sssm_animation_rows
     if(len(rows) == 0):
         return None
     
-    idx = min(scene.row_index, len(rows) - 1)  # clamp incase index is stale
+    idx = min(scene.sssm_row_index, len(rows) - 1)  # clamp incase index is stale
     return rows[idx]
 def get_row_label(row):
     return row.label if row.label!='' else UNTITLED_ROW_NAME
@@ -1444,7 +1430,7 @@ def get_label_text():
 
     # Get the label text of the first row 
     scene = bpy.context.scene
-    for row in scene.animation_rows:
+    for row in scene.sssm_animation_rows:
         if(row.label == ""):
             continue
     
@@ -1466,7 +1452,7 @@ def get_pixelated_img_path():
 
     return unique_path(pixelated_output_path)
 def get_sprite_sheet_path(mode, single_sprite = False):
-    props = bpy.context.scene.sprite_sheet_maker_props
+    props = bpy.context.scene.sssm_props
     file_ext = bpy.context.scene.render.image_settings.file_format.lower()
 
     # Assign file/folder name
@@ -1499,28 +1485,28 @@ def get_objects_to_capture(row):
 
 # Initialize Classes
 classes = (
-    SSM_MessagePopup,
-    SSM_Properties,
-    SSM_CaptureItem,
-    SSM_RowInfo,
-    SSM_OT_KeyListener,
-    SSM_OT_ImportSettings,
-    SSM_OT_ExportSettings,
-    SSM_UL_AnimationRows,
-    SSM_UL_CaptureItems,
-    SSM_OT_DuplicateRow,
-    SSM_OT_AddRow,
-    SSM_OT_RemoveRow,
-    SSM_OT_MoveRow,
-    SSM_OT_PlayPreview,
-    SSM_OT_AddCaptureItem,
-    SSM_OT_RemoveCaptureItem,
-    SSM_OT_CreateAutoCamera,
-    SSM_OT_PixelateImage,
-    SSM_OT_CombineSprites,
-    SSM_OT_CreateSingleSprite,
-    SSM_OT_CreateSheet,
-    SSM_PT_MainPanel,
+    SSSM_MessagePopup,
+    SSSM_Properties,
+    SSSM_CaptureItem,
+    SSSM_RowInfo,
+    SSSM_OT_KeyListener,
+    SSSM_OT_ImportSettings,
+    SSSM_OT_ExportSettings,
+    SSSM_UL_AnimationRows,
+    SSSM_UL_CaptureItems,
+    SSSM_OT_DuplicateRow,
+    SSSM_OT_AddRow,
+    SSSM_OT_RemoveRow,
+    SSSM_OT_MoveRow,
+    SSSM_OT_PlayPreview,
+    SSSM_OT_AddCaptureItem,
+    SSSM_OT_RemoveCaptureItem,
+    SSSM_OT_CreateAutoCamera,
+    SSSM_OT_PixelateImage,
+    SSSM_OT_CombineSprites,
+    SSSM_OT_CreateSingleSprite,
+    SSSM_OT_CreateSheet,
+    SSSM_PT_MainPanel,
 )
 
 
@@ -1530,8 +1516,8 @@ def start_key_listener(dummy):
     # Delay actual invoke since context isnt ready yet during load_post
     bpy.app.timers.register(invoke_key_listener, first_interval=KEY_LISTENER_START_DELAY)
 def invoke_key_listener():
-    if hasattr(bpy.ops, "spritesheetmaker"):
-        bpy.ops.spritesheetmaker.key_listener('INVOKE_DEFAULT')
+    if hasattr(bpy.ops, "simplified_spritesheetmaker"):
+        bpy.ops.simplified_spritesheetmaker.key_listener('INVOKE_DEFAULT')
     else:
         log("Failed to listen for Alt Key!", True, "ERROR")
     return None
@@ -1540,9 +1526,9 @@ def register():
         bpy.utils.register_class(cls)
     
     
-    Scene.sprite_sheet_maker_props = PointerProperty(type=SSM_Properties)
-    Scene.animation_rows = CollectionProperty(type=SSM_RowInfo)
-    Scene.row_index = IntProperty(default=0)
+    Scene.sssm_props = PointerProperty(type=SSSM_Properties)
+    Scene.sssm_animation_rows = CollectionProperty(type=SSSM_RowInfo)
+    Scene.sssm_row_index = IntProperty(default=0)
 
 
     # Start listening for "Alt" key
@@ -1554,9 +1540,9 @@ def unregister():
         except RuntimeError:
             pass
 
-    del Scene.sprite_sheet_maker_props
-    del Scene.animation_rows
-    del Scene.row_index
+    del Scene.sssm_props
+    del Scene.sssm_animation_rows
+    del Scene.sssm_row_index
 
 
     # Stop listening for "Alt" key
