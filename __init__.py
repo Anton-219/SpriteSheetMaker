@@ -138,7 +138,7 @@ class SSM_RowInfo(PropertyGroup):
 
 
     enabled: BoolProperty(name="Enabled", default=True, description="If disabled this row will not be included while creating the sprite sheet\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "enabled"))
-    label: StringProperty(name="Label", default="", description="The text that will be added on top of the row in the sprite sheet")
+    label: StringProperty(name="Row Name", default="", description="Name used to identify this row in the UI, output folders, file names and logs")
     capture_items: CollectionProperty(type=SSM_CaptureItem)
     capture_item_index: IntProperty(default=0, description="Pointer tracking active item inside collection")
 
@@ -222,12 +222,7 @@ class SSM_RowInfo(PropertyGroup):
     frame_count: IntProperty(name="Count", default=10, min=1, soft_max=1048574, description="Desired frame count after scaling assigned actions\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "frame_count"))
 
 
-    # Label & output settings
-    label_font_size: IntProperty(name="Label Font Size", default=24, min=0, soft_max=1000, description="Font size of the label text on top of this row\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "label_font_size"))
-    label_show_frame_count: BoolProperty(name="Frame Count in Label", default=False, description="If enabled, appends the frame count of this row to its label as ' [<frame count>]'\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "label_show_frame_count"))
-    label_show_row_size: BoolProperty(name="Row Size in Label", default=False, description="If enabled, appends the size of this row to its label as ' (<width>x<height>)'\nIf both 'Frame Count in Label' and this are enabled, frame count is shown first\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "label_show_row_size"))
-    label_color: FloatVectorProperty(name="Label Color", subtype='COLOR', size=4, default=(1.0, 1.0, 1.0, 1.0), min=0.0, max=1.0, description="Color of the label text on top of this row\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "label_color"))
-    label_margin: IntProperty(name="Label Margin", default=15, min=0, soft_max=1000, description="Vertical margin gap (in pixels) between the label and the images of this row\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "label_margin"))
+    # Row layout settings
     image_margin: IntProperty(name="Image Margin", default=15, min=0, soft_max=1000, description="Horizonal margin gap (in pixels) between images within this row\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "image_margin"))
     row_margin: IntProperty(name="Row Margin", default=15, min=0, soft_max=1000, description="Vertical margin gap (in pixels) between this row and the next row in the sprite sheet\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "row_margin"))
     sub_row_margin: IntProperty(name="Sub Row Margin", default=15, min=0, soft_max=1000, description="Vertical margin gap (in pixels) between wrapped sub rows caused by Max Columns\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "sub_row_margin"))
@@ -1128,26 +1123,6 @@ class SSM_PT_MainPanel(Panel):
             return
 
 
-        # Label Color
-        ui_line = box.row()
-        split = ui_line.split(factor=0.45)
-        split.label(text="Label Color")
-        split.prop(row, "label_color", text="")
-
-
-        # Label font size
-        box.prop(row, "label_font_size", text="Label Font Size")
-
-
-        # Frame Count in Label & Row Size in Label
-        box.prop(row, "label_show_frame_count", text="Frame Count in Label")
-        box.prop(row, "label_show_row_size", text="Row Size in Label")
-
-
-        # Label Margin
-        box.prop(row, "label_margin", text="Label Margin")
-
-
         # Image Margin
         box.prop(row, "image_margin", text="Image Margin")
 
@@ -1160,9 +1135,9 @@ class SSM_PT_MainPanel(Panel):
 
         row = scene.animation_rows[scene.row_index]
 
-        # Label
+        # Row Name
         split = ui_box.split(factor=0.25)
-        split.label(text="Label")
+        split.label(text="Row Name")
         split.prop(row, 'label', text='')
 
 
@@ -1418,16 +1393,11 @@ def gen_row_param(row):
 
     # Copy row data fields
     row_param.data.label_text = row.label
-    row_param.data.label_font_size = row.label_font_size
-    row_param.data.label_color = tuple(row.label_color)
-    row_param.data.label_margin = row.label_margin
     row_param.data.image_margin = row.image_margin
     row_param.data.row_margin = row.row_margin
     row_param.data.sub_row_margin = row.sub_row_margin
     row_param.data.consistency = SpriteConsistency(row.sprite_consistency)
     row_param.data.align = SpriteAlign(row.sprite_align)
-    row_param.data.label_show_frame_count = row.label_show_frame_count
-    row_param.data.label_show_row_size = row.label_show_row_size
     row_param.data.max_columns = row.max_columns
 
 
