@@ -12,7 +12,6 @@ A blender addon to convert your 3D animations into 2D sprite sheets with in-buil
 ## 🪄 Features
 1. Highly customizable
 1. Inbuilt auto camera
-1. Labeling for each row
 1. Allows single sprite creation
 1. In-built pixelation tool
 1. Options for combining into sheet, strips or images
@@ -87,10 +86,10 @@ A blender addon to convert your 3D animations into 2D sprite sheets with in-buil
    You can preview all the actions to be rendered in this row by pressing ▶︎ button.
    
    > **Note:**  
-   > You can hold Alt and change any of the Row Info properties (except `Label` & `Capture Items`) to sync changes across all rows.
+   > You can hold Alt and change any of the Row Info properties (except `Row Name` & `Capture Items`) to sync changes across all rows.
 
-   -  **Label:**  
-      This is the text that will be added on top of the row in the sprite sheet.
+   -  **Row Name:**  
+      This is the internal name used to identify the row in the UI, output folders, file names, and logs. It is not rendered into the sprite sheet.
 
    - **Capture Items:**  
       These are all the objects that will be captured within a single row, Use + and - buttons on the side to add & remove items. Once an item is created it will have 3 inputs:  
@@ -99,9 +98,9 @@ A blender addon to convert your 3D animations into 2D sprite sheets with in-buil
       `Slot`: This refers to [action slot](https://www.youtube.com/watch?v=N4GlTIz66EA) to be used (leave blank if you're unsure)  
 
       > **Note:**  
-      > If the Label is empty and an action is assgined then the Label will automatically be set to the action name.  
-      > As long as the Label matches the action name both will remain in sync.  
-      > If you don't want this behaviour then simply add an empty space " " at the end of the Label.  
+      > If the Row Name is empty and an action is assigned then the Row Name will automatically be set to the action name.  
+      > As long as the Row Name matches the action name both will remain in sync.  
+      > If you don't want this behaviour then simply add an empty space " " at the end of the Row Name.  
       
    - **To Flip H:**  
       Horizontally flips the rendered image before saving into temp folder.  
@@ -205,22 +204,6 @@ A blender addon to convert your 3D animations into 2D sprite sheets with in-buil
 1. **Appearance Settings:**  
    ![Appearance Settings screenshot](images/screenshots/appearance_settings_screenshot.png)   
 
-   - **Label Color:**  
-      The color of the label on top of the row.
-
-   - **Label Font Size:**  
-      The font size of the action name labels in sprite sheet, If you do not want labels in your sprite sheet you can set it to 0.  
-
-   - **Frame Count in Label:**  
-      If enabled, The number of frames will be added into the label of each row.
-
-   - **Row Size in Label:**  
-      If enabled, The width & height will be added into the label of each row.  
-      `Image Margin` will be taken into account but not `Surrounding Margings`.
-
-   - **Label Margin:**  
-      Vertical margin, in pixels, between the label and the images.  
-      
    - **Image Margin:**  
       Horizonal margin, in pixel, between images within a row.  
    
