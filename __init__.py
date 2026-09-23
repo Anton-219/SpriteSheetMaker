@@ -223,8 +223,6 @@ class SSM_RowInfo(PropertyGroup):
 
 
     # Row layout settings
-    image_margin: IntProperty(name="Image Margin", default=15, min=0, soft_max=1000, description="Horizonal margin gap (in pixels) between images within this row\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "image_margin"))
-    row_margin: IntProperty(name="Row Margin", default=15, min=0, soft_max=1000, description="Vertical margin gap (in pixels) between this row and the next row in the sprite sheet\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "row_margin"))
     sub_row_margin: IntProperty(name="Sub Row Margin", default=15, min=0, soft_max=1000, description="Vertical margin gap (in pixels) between wrapped sub rows caused by Max Columns\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "sub_row_margin"))
     sprite_consistency: EnumProperty(
         name="Sprite Align",
@@ -266,10 +264,6 @@ class SSM_Properties(PropertyGroup):
 
     # Output settings
     background_color: FloatVectorProperty(name="Background Color", subtype='COLOR', size=4, default=(0.0, 0.0, 0.0, 0.0), min=0.0, max=1.0, description="Background color for entire sheet (or rows, or images based on combine mode)")
-    surrounding_margin_top: IntProperty(name="Surrounding Margin Top", default=15, min=0, soft_max=1000, description="Margin (in pixels) to add to the top of the sprite sheet")
-    surrounding_margin_right: IntProperty(name="Surrounding Margin Right", default=15, min=0, soft_max=1000, description="Margin (in pixels) to add to the right of the sprite sheet")
-    surrounding_margin_bottom: IntProperty(name="Surrounding Margin Bottom", default=15, min=0, soft_max=1000, description="Margin (in pixels) to add to the bottom of the sprite sheet")
-    surrounding_margin_left: IntProperty(name="Surrounding Margin Left", default=15, min=0, soft_max=1000, description="Margin (in pixels) to add to the left of the sprite sheet")
     combine_mode: EnumProperty(
         name="Combine Mode",
         description="Dictates how all the rendered frames will be stitched together",
@@ -1123,14 +1117,8 @@ class SSM_PT_MainPanel(Panel):
             return
 
 
-        # Image Margin
-        box.prop(row, "image_margin", text="Image Margin")
-
-
-        # Row Margin & Sub Row Margin
-        ui_line = box.row(align=True)
-        ui_line.prop(row, "row_margin", text="Row Margin")
-        ui_line.prop(row, "sub_row_margin", text="Sub Row Margin")
+        # Sub Row Margin
+        box.prop(row, "sub_row_margin", text="Sub Row Margin")
     def draw_row_info(self, context, scene, ui_box):
 
         row = scene.animation_rows[scene.row_index]
@@ -1217,15 +1205,6 @@ class SSM_PT_MainPanel(Panel):
         split = ui_line.split(factor=0.45)
         split.label(text="Background Color")
         split.prop(props, "background_color", text="")
-
-
-        # Surrounding Margins
-        box.label(text="Surrounding Margins")
-        ui_line = box.row(align=True)  # Create a row layout
-        ui_line.prop(props, "surrounding_margin_top", text="Top")
-        ui_line.prop(props, "surrounding_margin_right", text="Right")
-        ui_line.prop(props, "surrounding_margin_bottom", text="Bottom")
-        ui_line.prop(props, "surrounding_margin_left", text="Left")
 
 
         # Delete Temp Folder
@@ -1341,7 +1320,6 @@ def gen_assemble_param():
 
     # Set assemble parameters
     param = AssembleParam()
-    param.surrounding_margin = (props.surrounding_margin_top, props.surrounding_margin_right, props.surrounding_margin_bottom, props.surrounding_margin_left)
     param.combine_mode = CombineMode(props.combine_mode)
     param.background_color = tuple(props.background_color)
 
@@ -1393,8 +1371,6 @@ def gen_row_param(row):
 
     # Copy row data fields
     row_param.data.label_text = row.label
-    row_param.data.image_margin = row.image_margin
-    row_param.data.row_margin = row.row_margin
     row_param.data.sub_row_margin = row.sub_row_margin
     row_param.data.consistency = SpriteConsistency(row.sprite_consistency)
     row_param.data.align = SpriteAlign(row.sprite_align)
