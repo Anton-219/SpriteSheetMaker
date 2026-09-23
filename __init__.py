@@ -87,6 +87,8 @@ class SSSM_RowInfo(PropertyGroup):
             
             self.label = item.action.name
             break
+    def label_update(self, context):
+        sync_output_filename_from_rows(context)
     def alt_sync_update(self, context, prop_name):
 
         # Return if alt key not held
@@ -119,7 +121,7 @@ class SSSM_RowInfo(PropertyGroup):
 
 
     enabled: BoolProperty(name="Enabled", default=True, description="If disabled this row will not be included while creating the sprite sheet\nHold Alt & change to sync across all rows", update=lambda self, ctx: self.alt_sync_update(ctx, "enabled"))
-    label: StringProperty(name="Row Name", default="", description="Name used to identify this row in the UI, output folders, file names and logs")
+    label: StringProperty(name="Row Name", default="", description="Name used to identify this row in the UI, output folders, file names and logs", update=label_update)
     capture_items: CollectionProperty(type=SSSM_CaptureItem)
     capture_item_index: IntProperty(default=0, description="Pointer tracking active item inside collection")
 
@@ -260,6 +262,16 @@ class SSSM_Properties(PropertyGroup):
         description="Folder to use as input for 'Combine Sprites'",
         update=update_temp_folder
     )
+    output_filename: StringProperty(
+        name="Output Filename",
+        default=SPRITE_SHEET_NAME,
+        description="Base name used for generated sprite output"
+    )
+    output_filename_auto_value: StringProperty(
+        default=SPRITE_SHEET_NAME,
+        options={'HIDDEN'},
+        description="Tracks the last automatically assigned output filename"
+    )
     output_folder: StringProperty(
         name="Output Folder",
         subtype="DIR_PATH",
@@ -392,6 +404,7 @@ class SSSM_OT_RemoveRow(Operator):
         if 0 <= idx < len(scene.sssm_animation_rows):
             scene.sssm_animation_rows.remove(idx)
             scene.sssm_row_index = max(0, min(len(scene.sssm_animation_rows) - 1, idx - 1))
+            sync_output_filename_from_rows(context)
         return {'FINISHED'}
 class SSSM_OT_MoveRow(Operator):
     bl_idname = "simplified_spritesheetmaker.move_row"
@@ -419,6 +432,7 @@ class SSSM_OT_MoveRow(Operator):
             rows.move(idx, idx + 1)
             scene.sssm_row_index += 1
 
+        sync_output_filename_from_rows(context)
         return {"FINISHED"}
 class SSSM_OT_PlayPreview(Operator):
     bl_idname = "simplified_spritesheetmaker.play_capture_items"
@@ -853,7 +867,7 @@ class SSSM_OT_CreateSingleSprite(Operator):
 
 
             # Generate Spritesheet as single sprite
-            output_path = get_sprite_sheet_path(props.combine_mode, True)
+            output_path = get_sprite_sheet_path(props.combine_mode, single_sprite=True, use_output_filename=True)
             SPRITE_SHEET_MAKER.create_sprite_sheet(sheet_param, output_path)
             log(f"Created single sprite successfully at {os.path.normpath(output_path)}", True)
             return {'FINISHED'}
@@ -967,7 +981,7 @@ class SSSM_OT_CreateSheet(Operator):
             SPRITE_SHEET_MAKER.on_sheet_frame_creating.subscribe(update_frame_progress)
 
             param = gen_sprite_sheet_param()
-            output_path = get_sprite_sheet_path(props.combine_mode)
+            output_path = get_sprite_sheet_path(props.combine_mode, use_output_filename=True)
             SPRITE_SHEET_MAKER.create_sprite_sheet(param, output_path)
             log(f"Created successfully at {os.path.normpath(output_path)}", True)
         except SpriteSheetAbortedException as e:
@@ -1250,8 +1264,14 @@ class SSSM_PT_MainPanel(Panel):
         self.draw_output_settings(context, props, layout)
         
 
-        # Output folder
+        # Output filename
         layout.separator(factor=0.5)
+        ui_line = layout.row()
+        split = ui_line.split(factor=0.45)
+        split.label(text="Output Filename")
+        split.prop(props, "output_filename", text="")
+
+        # Output folder
         ui_line = layout.row()
         split = ui_line.split(factor=0.45)
         split.label(text="Output Folder")
@@ -1418,6 +1438,24 @@ def get_label_text():
         return row.label
     
     return UNTITLED_LABEL_TEXT
+def sync_output_filename_from_rows(context=None):
+    scene = context.scene if context else bpy.context.scene
+    props = scene.sssm_props
+
+    # Stop automatic naming as soon as the user has entered a custom value.
+    if props.output_filename != props.output_filename_auto_value:
+        return
+
+    output_filename = SPRITE_SHEET_NAME
+    for row in scene.sssm_animation_rows:
+        if row.label == "":
+            continue
+
+        output_filename = row.label
+        break
+
+    props.output_filename = output_filename
+    props.output_filename_auto_value = output_filename
 def get_pixelated_img_path():
 
     # Get all props
@@ -1432,12 +1470,14 @@ def get_pixelated_img_path():
     
 
     return unique_path(pixelated_output_path)
-def get_sprite_sheet_path(mode, single_sprite = False):
+def get_sprite_sheet_path(mode, single_sprite = False, use_output_filename = False):
     props = bpy.context.scene.sssm_props
     file_ext = bpy.context.scene.render.image_settings.file_format.lower()
 
     # Assign file/folder name
-    if(single_sprite):
+    if(use_output_filename):
+        base_name = f"{props.output_filename}.{file_ext}" if single_sprite or mode == CombineMode.SHEET.value else props.output_filename
+    elif(single_sprite):
         base_name = f"{SINGLE_SPRITE_NAME}.{file_ext}"
     else:
         base_name = f"{SPRITE_SHEET_NAME}.{file_ext}" if mode == CombineMode.SHEET.value else DEFAULT_OUTPUT_FOLDER_NAME
