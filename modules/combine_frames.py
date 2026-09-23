@@ -36,12 +36,10 @@ class CombineMode(Enum):
 
 
 # Row settings defaults, used as fallback if row_settings.json missing or key missing
-DEFAULT_IMAGE_MARGIN = 15
 DEFAULT_SPRITE_CONSISTENCY = SpriteConsistency.ROW
 DEFAULT_SPRITE_ALIGN = SpriteAlign.BOTTOM_CENTER
 DEFAULT_MAX_COLUMNS = 0
-DEFAULT_ROW_MARGIN = 15
-DEFAULT_SUB_ROW_MARGIN = DEFAULT_IMAGE_MARGIN
+DEFAULT_SUB_ROW_MARGIN = 15
 
 
 # Classes
@@ -52,8 +50,6 @@ class RowData:
         self.max_columns:int = DEFAULT_MAX_COLUMNS
         self.consistency:SpriteConsistency = DEFAULT_SPRITE_CONSISTENCY
         self.align:SpriteAlign = DEFAULT_SPRITE_ALIGN
-        self.image_margin:int = DEFAULT_IMAGE_MARGIN
-        self.row_margin:int = DEFAULT_ROW_MARGIN
         self.sub_row_margin:int = DEFAULT_SUB_ROW_MARGIN
         
         
@@ -64,7 +60,6 @@ class RowData:
 class AssembleParam:
     def __init__(self):
         self.background_color:tuple = (0.0, 0.0, 0.0, 0.0)  # RGBA normalized 0 to 1
-        self.surrounding_margin:tuple[int, int, int, int] = (15, 15, 15, 15)  # top, right, bottom, left
         self.combine_mode:CombineMode = CombineMode.SHEET
 
 
@@ -266,8 +261,6 @@ def create_row_data(label, images, row_settings):
     # Create row data
     row_data = RowData()
     row_data.label_text = label
-    row_data.image_margin = row_settings.get("image_margin", DEFAULT_IMAGE_MARGIN)
-    row_data.row_margin = row_settings.get("row_margin", DEFAULT_ROW_MARGIN)
     row_data.sub_row_margin = row_settings.get("sub_row_margin", DEFAULT_SUB_ROW_MARGIN)
     row_data.consistency = SpriteConsistency(row_settings.get("sprite_consistency", DEFAULT_SPRITE_CONSISTENCY.value))
     row_data.align = SpriteAlign(row_settings.get("sprite_align", DEFAULT_SPRITE_ALIGN.value))
@@ -287,13 +280,6 @@ def create_row_data(label, images, row_settings):
 
 # Methods
 def combine_into_images(param:AssembleParam, rows:list[RowData], global_img_widest:int, global_img_tallest:int, output_path:str):
-    
-    # Extract from param
-    surrounding_margin_top = param.surrounding_margin[0]
-    surrounding_margin_right = param.surrounding_margin[1]
-    surrounding_margin_bottom = param.surrounding_margin[2]
-    surrounding_margin_left = param.surrounding_margin[3]
-
     
     # Make sure folder exists
     create_folder(output_path)
@@ -323,15 +309,10 @@ def combine_into_images(param:AssembleParam, rows:list[RowData], global_img_wide
                 large_width, large_height = global_img_widest, global_img_tallest
             
 
-            # Add margins
-            new_img_width = surrounding_margin_left + large_width + surrounding_margin_right
-            new_img_height = surrounding_margin_top + large_height + surrounding_margin_bottom
-
-
             # Create new image
-            log(f"Creating image {new_img_width}x{new_img_height}")
+            log(f"Creating image {large_width}x{large_height}")
             bg_color = color_to_pil(param.background_color, img.mode)
-            new_img = Image.new(img.mode, (int(new_img_width), int(new_img_height)), bg_color)
+            new_img = Image.new(img.mode, (int(large_width), int(large_height)), bg_color)
             
 
             # Calculate offset based on alignment & consistency
@@ -339,7 +320,7 @@ def combine_into_images(param:AssembleParam, rows:list[RowData], global_img_wide
 
 
             # Paste image
-            alpha_paste(new_img, img, (int(offset_x + surrounding_margin_left), int(offset_y + surrounding_margin_top)))
+            alpha_paste(new_img, img, (int(offset_x), int(offset_y)))
 
 
             # Save new image
@@ -362,45 +343,29 @@ def combine_into_strips(param:AssembleParam, rows:list[RowData], global_img_wide
         combine_into_sheet(param, [row], global_img_widest, global_img_tallest, strip_output_path)
 def combine_into_sheet(param:AssembleParam, rows:list[RowData], global_img_widest:int, global_img_tallest:int, output_path:str):
 
-    # Extract from param
-    surrounding_margin = param.surrounding_margin
-
-
     # Assign prerequisites & Calculate sheet dimensions
     sheet_width = 0
     sheet_height = 0
-    for row_count, row_data in enumerate(rows):
+    for row_data in rows:
 
         # Calculate combined content width & height of all sub rows
         content_width:int = 0
         content_height:int = 0
-        widest_index = -1
-        for i, sub_row_images in enumerate(row_data.images):
+        for sub_row_images in row_data.images:
 
             # Increase content height
             sub_row_width, sub_row_height = calc_sub_row_size(row_data, sub_row_images, global_img_widest, global_img_tallest)
             content_height += sub_row_height
-
-            # Store widest sub row index
-            if sub_row_width > content_width:
-                content_width = sub_row_width
-                widest_index = i
+            content_width = max(content_width, sub_row_width)
 
 
-        # Calculate content margins
-        sub_row_h_margin = row_data.image_margin * (len(row_data.images[widest_index]) - 1) if widest_index != -1 else 0
+        # Add vertical spacing created by wrapped sub rows
         sub_row_v_margin = row_data.sub_row_margin * (len(row_data.images) - 1) if len(row_data.images) != 0 else 0
-        row_v_margin = row_data.row_margin if row_count + 1 < len(rows) else 0
 
 
         # Add to total sheet height & width
-        sheet_width = max(sheet_width, content_width + sub_row_h_margin)
-        sheet_height += content_height + row_v_margin + sub_row_v_margin
-
-
-    # Add surrounding margins to sheet dimensions
-    sheet_width += surrounding_margin[1] + surrounding_margin[3]
-    sheet_height += surrounding_margin[0] + surrounding_margin[2]
+        sheet_width = max(sheet_width, content_width)
+        sheet_height += content_height + sub_row_v_margin
 
 
     # Create sheet
@@ -412,20 +377,20 @@ def combine_into_sheet(param:AssembleParam, rows:list[RowData], global_img_wides
 
 
     # Paste images into sheet
-    paste_height = surrounding_margin[0]
-    for row_count, row_data in enumerate(rows):
+    paste_height = 0
+    for row_data in rows:
 
         # Iterate through images
         flat_images = [img for sub_row in row_data.images for img in sub_row]
         max_columns = row_data.max_columns if row_data.max_columns > 0 else len(flat_images)
         sub_row_height = calc_sub_row_height(row_data, row_data.images[0], global_img_tallest)
-        paste_width = surrounding_margin[3]
+        paste_width = 0
         for i, img in enumerate(flat_images):
 
             # New sub row after max columns reached
             if i != 0 and i % max_columns == 0:
                 paste_height += sub_row_height + row_data.sub_row_margin
-                paste_width = surrounding_margin[3]
+                paste_width = 0
                 sub_row_height = calc_sub_row_height(row_data, row_data.images[i // max_columns], global_img_tallest)
 
             # Paste image
@@ -433,18 +398,13 @@ def combine_into_sheet(param:AssembleParam, rows:list[RowData], global_img_wides
             offset_x, offset_y = calc_align_offset(row_data.align, large_width, large_height, img.width, img.height)
             img_location_x, img_location_y = paste_width + offset_x, paste_height + offset_y
             alpha_paste(sheet, img, (int(img_location_x), int(img_location_y)))
-            paste_width += large_width + row_data.image_margin
+            paste_width += large_width
             log(f"Added image of frame {i} at ({img_location_x},{img_location_y})")
 
 
         # Add last sub row height
         if len(flat_images) > 0:
             paste_height += sub_row_height
-
-
-        # Add row margin
-        if row_count + 1 < len(rows):
-            paste_height += row_data.row_margin
     
 
     # Save the final output sprite sheet
