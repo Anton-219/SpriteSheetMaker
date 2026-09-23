@@ -1,7 +1,8 @@
 # 🖼️ Simplified SpriteSheetMaker
 
-[![Blender-Addon](https://img.shields.io/badge/Blender--Addon-%23F5792A.svg?style=flat&logo=blender&logoColor=white)](https://extensions.blender.org/add-ons/sprite-sheet-maker/)
-![License](https://img.shields.io/github/license/ManasMakde/SpriteSheetMaker?style=flat&color=blue)
+![Blender-Addon](https://img.shields.io/badge/Blender--Addon-%23F5792A.svg?style=flat&logo=blender&logoColor=white)
+![License](https://img.shields.io/github/license/Anton-219/SpriteSheetMaker?style=flat&color=blue)
+[![Upstream](https://img.shields.io/badge/Upstream-SpriteSheetMaker-blue?style=flat&logo=github)](https://github.com/ManasMakde/SpriteSheetMaker)
 
 A blender addon to convert your 3D animations into 2D sprite sheets with in-built toggleable pixelation
 
