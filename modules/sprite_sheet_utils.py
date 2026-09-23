@@ -12,7 +12,8 @@ from .logging import *
 
 TEMP_FOLDER_NAME = "SimplifiedSpriteSheetMakerTemp"
 AUTO_CAMERA_NAME = "AutoSimplifiedSpriteSheetMakerCamera"
-PIXELATE_SCENE_NAME = "SpriteSheetMakerPixelateScene"
+PIXELATE_SCENE_SOURCE_NAME = "SpriteSheetMakerPixelateScene"
+PIXELATE_SCENE_NAME = "SimplifiedSpriteSheetMakerPixelateScene"
 SPRITE_SHEET_MAKER_BLEND_FILE = "../blend_files/SpriteSheetMaker.blend"
 IMAGE_INPUT_NODE = "ImageInput"
 PIXELATION_AMOUNT_NODE = "PixelationAmount"
@@ -879,17 +880,20 @@ def pixelate_images(image_paths:dict[str, str], param:PixelateParam):  # images 
 
         # Import pixelate scene
         with bpy.data.libraries.load(blend_file_path, link=False) as (data_from, data_to):
-            if PIXELATE_SCENE_NAME in data_from.scenes:  # If scene found
-                log(f"Importing scene '{PIXELATE_SCENE_NAME}' from '{blend_file_path}'")
-                data_to.scenes = [PIXELATE_SCENE_NAME]
+            if PIXELATE_SCENE_SOURCE_NAME in data_from.scenes:  # If scene found
+                log(f"Importing scene '{PIXELATE_SCENE_SOURCE_NAME}' from '{blend_file_path}'")
+                data_to.scenes = [PIXELATE_SCENE_SOURCE_NAME]
             else:  # If scene not found
-                raise Exception(f"scene '{PIXELATE_SCENE_NAME}' not found in {blend_file_path}")
+                raise Exception(f"scene '{PIXELATE_SCENE_SOURCE_NAME}' not found in {blend_file_path}")
 
 
         # return If still no pixelate scene exists 
         pixelate_scene = data_to.scenes[0]
         if not pixelate_scene:
-            raise Exception(f"scene '{PIXELATE_SCENE_NAME}' is invalid!")
+            raise Exception(f"scene '{PIXELATE_SCENE_SOURCE_NAME}' is invalid!")
+
+        # Rename imported runtime scene to avoid clashing with the original add-on.
+        pixelate_scene.name = PIXELATE_SCENE_NAME
     
     
     # Save old scene
