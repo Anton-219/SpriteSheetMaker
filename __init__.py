@@ -235,12 +235,17 @@ class SSSM_RowInfo(PropertyGroup):
     )
 class SSSM_Properties(PropertyGroup):
 
+    _is_setting_output_filename = False
+
     def update_temp_folder(self, context):
         if self.temp_folder.startswith("//"):
             self.temp_folder = bpy.path.abspath(self.temp_folder)
     def update_output_folder(self, context):
         if self.output_folder.startswith("//"):
             self.output_folder = bpy.path.abspath(self.output_folder)
+    def update_output_filename(self, context):
+        if not SSSM_Properties._is_setting_output_filename:
+            self.output_filename_manual = True
     
 
     # Output settings
@@ -265,12 +270,13 @@ class SSSM_Properties(PropertyGroup):
     output_filename: StringProperty(
         name="Output Filename",
         default=SPRITE_SHEET_NAME,
-        description="Base name used for generated sprite output"
+        description="Base name used for generated sprite output",
+        update=update_output_filename
     )
-    output_filename_auto_value: StringProperty(
-        default=SPRITE_SHEET_NAME,
+    output_filename_manual: BoolProperty(
+        default=False,
         options={'HIDDEN'},
-        description="Tracks the last automatically assigned output filename"
+        description="Whether the output filename was manually edited"
     )
     output_folder: StringProperty(
         name="Output Folder",
@@ -1442,8 +1448,8 @@ def sync_output_filename_from_rows(context=None):
     scene = context.scene if context else bpy.context.scene
     props = scene.sssm_props
 
-    # Stop automatic naming as soon as the user has entered a custom value.
-    if props.output_filename != props.output_filename_auto_value:
+    # Stop automatic naming as soon as the user has manually edited the filename.
+    if props.output_filename_manual:
         return
 
     output_filename = SPRITE_SHEET_NAME
@@ -1454,8 +1460,11 @@ def sync_output_filename_from_rows(context=None):
         output_filename = row.label
         break
 
-    props.output_filename = output_filename
-    props.output_filename_auto_value = output_filename
+    SSSM_Properties._is_setting_output_filename = True
+    try:
+        props.output_filename = output_filename
+    finally:
+        SSSM_Properties._is_setting_output_filename = False
 def get_pixelated_img_path():
 
     # Get all props
@@ -1476,7 +1485,8 @@ def get_sprite_sheet_path(mode, single_sprite = False, use_output_filename = Fal
 
     # Assign file/folder name
     if(use_output_filename):
-        base_name = f"{props.output_filename}.{file_ext}" if single_sprite or mode == CombineMode.SHEET.value else props.output_filename
+        output_filename = bpy.path.clean_name(props.output_filename.strip()) or SPRITE_SHEET_NAME
+        base_name = f"{output_filename}.{file_ext}" if single_sprite or mode == CombineMode.SHEET.value else output_filename
     elif(single_sprite):
         base_name = f"{SINGLE_SPRITE_NAME}.{file_ext}"
     else:
