@@ -15,7 +15,7 @@ EXCLUDE_PATHS = [
     "README.md",
     "CONTRIBUTING.md",
 ]
-BUILD_ZIP_PREFIX = "sprite_sheet_maker"
+BUILD_ZIP_PREFIX = "simplified_sprite_sheet_maker"
 
 
 # Properties
