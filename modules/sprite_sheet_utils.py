@@ -10,8 +10,8 @@ from .combine_frames import AssembleParam, RowData, assemble_images, create_fold
 from .logging import *
 
 
-TEMP_FOLDER_NAME = "SpriteSheetMakerTemp"
-AUTO_CAMERA_NAME = "AutoSpriteSheetMakerCamera"
+TEMP_FOLDER_NAME = "SimplifiedSpriteSheetMakerTemp"
+AUTO_CAMERA_NAME = "AutoSimplifiedSpriteSheetMakerCamera"
 PIXELATE_SCENE_NAME = "SpriteSheetMakerPixelateScene"
 SPRITE_SHEET_MAKER_BLEND_FILE = "../blend_files/SpriteSheetMaker.blend"
 IMAGE_INPUT_NODE = "ImageInput"
@@ -1104,7 +1104,6 @@ class SpriteSheetMaker():
 
             # Save row settings so Combine Sprites can work standalone off the temp folder
             row_settings = {
-                "sub_row_margin": row.data.sub_row_margin,
                 "sprite_consistency": row.data.consistency.value,
                 "sprite_align": row.data.align.value,
                 "max_columns": row.data.max_columns,
