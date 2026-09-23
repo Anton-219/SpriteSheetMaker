@@ -1,4 +1,4 @@
-# 🖼️ Sprite Sheet Maker
+# 🖼️ Simplified SpriteSheetMaker
 
 [![Blender-Addon](https://img.shields.io/badge/Blender--Addon-%23F5792A.svg?style=flat&logo=blender&logoColor=white)](https://extensions.blender.org/add-ons/sprite-sheet-maker/)
 ![License](https://img.shields.io/github/license/ManasMakde/SpriteSheetMaker?style=flat&color=blue)
@@ -42,7 +42,7 @@ A blender addon to convert your 3D animations into 2D sprite sheets with in-buil
 
 
 ## 🛠️ How to install?
-1. Download the addon from [releases](https://github.com/ManasMakde/SpriteSheetMaker/releases/) or official [blender extension](https://extensions.blender.org/add-ons/sprite-sheet-maker/) site
+1. Download the addon from [releases](https://github.com/Anton-219/SpriteSheetMaker/releases/)
 2. If installed from releases, Go to _Edit -> Preferences -> Add-ons -> Install from Disk_ and select the .zip file (make sure it's enabled once installed)
 3. If the installation was successful you should now see the panel as such:  
    ![Sidebar screenshot](images/screenshots/sidebar_screenshot.png)  
@@ -200,13 +200,6 @@ A blender addon to convert your 3D animations into 2D sprite sheets with in-buil
    > If the pixelated sprite quality is improper, Try increasing the `Pixels Per Meter` and trying again. 
 
 
-1. **Appearance Settings:**  
-   ![Appearance Settings screenshot](images/screenshots/appearance_settings_screenshot.png)   
-
-   - **Sub Row Margin:**  
-      Vertical margin, in pixels, between 2 sub rows caused by `Max Columns`.
-
-
 1. **Output Settings:**  
    ![Output Settings screenshot](images/screenshots/output_settings_screenshot.png)   
 
@@ -228,7 +221,7 @@ A blender addon to convert your 3D animations into 2D sprite sheets with in-buil
       Combines all images in the selected `Temp Folder` into one sprite sheet but only given that it follows the following structure:
 
       ```
-      SpriteSheetMakerTemp/
+      SimplifiedSpriteSheetMakerTemp/
       ├── 0_Idle/
       │   ├── 1.png
       │   └── 2.png
@@ -368,7 +361,7 @@ If you followed all the steps your sprite sheet should look something like this:
 
 1. Clone this repo
    ```
-   git clone https://github.com/ManasMakde/SpriteSheetMaker
+   git clone https://github.com/Anton-219/SpriteSheetMaker
    ```
 2. Switch to whichever branch you want to modify
    ```
@@ -389,7 +382,7 @@ If you followed all the steps your sprite sheet should look something like this:
 
 ## 🤝 Contribution
 You can contribute in the following ways:
-1. Report bugs or suggest features by opening a [new issue](https://github.com/ManasMakde/SpriteSheetMaker/issues/new).
+1. Report bugs or suggest features by opening a [new issue](https://github.com/Anton-219/SpriteSheetMaker/issues/new).
 2. Write test cases.
 3. Sponsor this project.
 
